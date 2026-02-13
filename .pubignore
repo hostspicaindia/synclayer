@@ -1,0 +1,32 @@
+# Exclude development and documentation files from pub.dev package
+
+# Backend example (not needed in package)
+backend/
+
+# Todo app example (keep main example/ folder)
+example/todo_app/
+
+# Internal documentation
+PRODUCTION_VALIDATION.md
+BUG_FIX_PULL_SYNC.md
+SENIOR_REVIEW_RESPONSE_V2.md
+SENIOR_IMPROVEMENTS_V2.md
+ACTION_PLAN.md
+COMPLETION_REPORT.md
+PHASE2_SUMMARY.md
+PHASE2_COMPLETE.md
+TESTING.md
+ARCHITECTURE_DIAGRAM.md
+
+# Build artifacts
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+.idea/
+*.iml
+
+# Git
+.git/
+.gitignore

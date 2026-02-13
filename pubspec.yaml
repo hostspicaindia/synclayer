@@ -1,0 +1,27 @@
+name: synclayer
+description: A local-first sync SDK for Flutter with offline support, automatic conflict resolution, and real-time synchronization.
+version: 0.1.0-alpha.1
+homepage: https://github.com/hostspicaindia/synclayer
+repository: https://github.com/hostspicaindia/synclayer
+issue_tracker: https://github.com/hostspicaindia/synclayer/issues
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  isar: ^3.1.0
+  isar_flutter_libs: ^3.1.0
+  dio: ^5.4.0
+  connectivity_plus: ^5.0.0
+  path_provider: ^2.1.0
+  uuid: ^4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  isar_generator: ^3.1.0
+  build_runner: ^2.4.0
+  flutter_lints: ^3.0.0
