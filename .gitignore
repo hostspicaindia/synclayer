@@ -65,3 +65,16 @@ coverage/
 
 # Test related
 .test_coverage.dart
+
+# Internal development documentation (not for public repo)
+ACTION_PLAN.md
+BUG_FIX_PULL_SYNC.md
+COMPLETION_REPORT.md
+PHASE2_COMPLETE.md
+PHASE2_SUMMARY.md
+PRODUCTION_VALIDATION.md
+SENIOR_IMPROVEMENTS_V2.md
+SENIOR_REVIEW_RESPONSE.md
+SENIOR_REVIEW_RESPONSE_V2.md
+TESTING.md
+project.md
