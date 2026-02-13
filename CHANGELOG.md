@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0-alpha.2] - 2026-02-14
+
+### Documentation
+- Added comprehensive documentation to all public APIs
+- Documented all parameters, return values, and exceptions
+- Added usage examples for every public method
+- Improved inline code documentation with detailed explanations
+- Added documentation for SyncEvent, ConflictStrategy, and SyncConfig
+
+### Improved
+- Better developer experience with IntelliSense support
+- Clearer API documentation on pub.dev
+
 ## [0.1.0-alpha.1] - 2026-02-14
 
 ### Initial Alpha Release
