@@ -142,7 +142,8 @@ synclayer/
 
 ## Questions?
 
-- **GitHub Issues** - For bugs, features, and questions (use "question" label)
+- **GitHub Issues** - For bugs and features
+- **GitHub Discussions** - For questions and ideas
 - **Email** - legal@hostspica.com for private matters
 
 ## License
