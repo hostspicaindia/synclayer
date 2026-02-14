@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0-alpha.3] - 2026-02-14
+
+### Documentation
+- **Major README overhaul** - Complete rewrite with proper positioning
+- Added clear problem → solution structure
+- Added "Why SyncLayer?" section with 5-line quick start
+- Added architecture diagram and comparison table
+- Added vs Firebase/Drift/Supabase positioning
+- Better structure: Quick Start → How It Works → Advanced
+- Added TRACKING.md for transparency on analytics
+
+### Improved
+- Much clearer value proposition for developers
+- Better first impression on pub.dev
+- Professional positioning vs competitors
+
 ## [0.1.0-alpha.2] - 2026-02-14
 
 ### Documentation
