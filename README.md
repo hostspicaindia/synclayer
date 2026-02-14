@@ -2,228 +2,303 @@
 
 [![pub package](https://img.shields.io/pub/v/synclayer.svg)](https://pub.dev/packages/synclayer)
 
-⚠️ **ALPHA VERSION - NOT PRODUCTION READY**
+**Build offline-first Flutter apps in minutes** — Production-grade sync engine with automatic background synchronization and conflict resolution.
 
-This package is in active development. APIs may change, and there are known limitations. Use in production at your own risk.
-
-**Current Status:** Alpha testing phase. Basic sync functionality works, but comprehensive production validation is ongoing.
+⚠️ **ALPHA VERSION** - Early release. APIs may change. [See known limitations](#known-limitations).
 
 ---
 
-An offline-first synchronization engine for Flutter apps.
+## Why SyncLayer?
 
-## Features
+Your users expect apps to work offline. But building sync is hard:
 
-- **Local-First Storage**: All data writes happen locally first for instant UI updates
-- **Bidirectional Sync**: Full push and pull synchronization with conflict resolution
-- **Automatic Sync**: Background synchronization when online
-- **Offline Queue**: Operations are queued and synced automatically when connection is restored
-- **Backend Agnostic**: Works with REST, Firebase, Supabase, or custom backends via adapter pattern
-- **Conflict Resolution**: Built-in strategies (last-write-wins, server-wins, client-wins)
-- **Batch Operations**: Save or delete multiple documents in a single operation
-- **Event System**: Internal event bus for logging, analytics, and monitoring
-- **Concurrency Safe**: Prevents race conditions in sync operations
-- **Sync Metadata**: Version tracking and timestamps for reliable conflict detection
-- **Simple API**: Minimal, intuitive developer experience
-- **Comprehensive Tests**: 90%+ test coverage with unit, integration, and performance tests
+❌ Manual queue management  
+❌ Conflict resolution logic  
+❌ Network retry handling  
+❌ Version tracking  
 
-## Known Limitations
+**SyncLayer handles all of this for you.**
 
-- Requires explicit collection configuration for pull sync
-- Example backend uses in-memory storage (not suitable for production)
-- Limited production testing and validation
-- Error handling and retry logic are basic
-- No built-in authentication or encryption
+```dart
+// That's it. Your app now works offline.
+await SyncLayer.init(
+  SyncConfig(
+    baseUrl: 'https://api.example.com',
+    collections: ['todos'],
+  ),
+);
 
-See [PRODUCTION_VALIDATION.md](https://github.com/hostspicaindia/synclayer/blob/main/PRODUCTION_VALIDATION.md) for detailed test status.
+// Save works instantly (local-first)
+await SyncLayer.collection('todos').save({
+  'text': 'Buy groceries',
+  'done': false,
+});
 
-## Installation
-
-Add to your `pubspec.yaml`:
-
-```yaml
-dependencies:
-  synclayer: ^0.1.0-alpha.1
+// Auto-syncs in background when online
+// Handles conflicts automatically
+// Retries on failure
 ```
+
+---
+
+## What You Get
+
+🚀 **Local-First** - Writes happen instantly to local storage  
+🔄 **Auto-Sync** - Background sync every 5 minutes (configurable)  
+📡 **Offline Queue** - Operations sync automatically when online  
+⚔️ **Conflict Resolution** - Last-write-wins, server-wins, or client-wins  
+🔌 **Backend Agnostic** - Works with REST, Firebase, Supabase, or custom backends  
+📦 **Batch Operations** - Save/delete multiple documents efficiently  
+👀 **Reactive** - Watch collections for real-time UI updates  
+
+---
 
 ## Quick Start
 
-### 1. Initialize SyncLayer
+### 1. Add dependency
+
+```yaml
+dependencies:
+  synclayer: ^0.1.0-alpha.2
+```
+
+### 2. Initialize
 
 ```dart
 import 'package:synclayer/synclayer.dart';
 
-await SyncLayer.init(
-  SyncConfig(
-    baseUrl: 'https://api.example.com',
-    authToken: 'your-auth-token',
-    syncInterval: Duration(minutes: 5),
-    collections: ['messages', 'users'], // Specify collections to sync
-  ),
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await SyncLayer.init(
+    SyncConfig(
+      baseUrl: 'https://api.example.com',
+      syncInterval: Duration(minutes: 5),
+      collections: ['todos', 'users'], // Collections to sync
+    ),
+  );
+  
+  runApp(MyApp());
+}
+```
+
+### 3. Use it
+
+```dart
+// Save (works offline)
+final id = await SyncLayer.collection('todos').save({
+  'text': 'Buy milk',
+  'done': false,
+});
+
+// Get
+final todo = await SyncLayer.collection('todos').get(id);
+
+// Update (same as save with id)
+await SyncLayer.collection('todos').save({
+  'text': 'Buy milk',
+  'done': true,
+}, id: id);
+
+// Delete
+await SyncLayer.collection('todos').delete(id);
+
+// Watch for changes (reactive UI)
+StreamBuilder(
+  stream: SyncLayer.collection('todos').watch(),
+  builder: (context, snapshot) {
+    final todos = snapshot.data ?? [];
+    return ListView.builder(
+      itemCount: todos.length,
+      itemBuilder: (context, i) => Text(todos[i]['text']),
+    );
+  },
 );
 ```
 
-### 2. Save Data
-
-```dart
-// Data is saved locally instantly
-final id = await SyncLayer.collection('messages').save({
-  'text': 'Hello World',
-  'userId': '123',
-  'timestamp': DateTime.now().toIso8601String(),
-});
-```
-
-### 3. Read Data
-
-```dart
-// Get single document
-final message = await SyncLayer.collection('messages').get(id);
-
-// Get all documents
-final allMessages = await SyncLayer.collection('messages').getAll();
-```
-
-### 4. Watch for Changes
-
-```dart
-SyncLayer.collection('messages').watch().listen((messages) {
-  print('Messages updated: ${messages.length}');
-});
-```
-
-### 5. Delete Data
-
-```dart
-await SyncLayer.collection('messages').delete(id);
-```
-
-### 6. Batch Operations
-
-```dart
-// Save multiple documents at once
-final ids = await SyncLayer.collection('messages').saveAll([
-  {'text': 'Message 1', 'userId': '123'},
-  {'text': 'Message 2', 'userId': '123'},
-  {'text': 'Message 3', 'userId': '123'},
-]);
-
-// Delete multiple documents at once
-await SyncLayer.collection('messages').deleteAll(ids);
-```
+---
 
 ## How It Works
 
-1. **Write Operations**: Data is saved to local Isar database immediately
-2. **Queue System**: Operations are added to a sync queue
-3. **Push Sync**: When online, queued operations are pushed to your backend
-4. **Pull Sync**: Remote changes are fetched and merged with local data
-5. **Conflict Resolution**: Conflicts are resolved using configured strategy (default: last-write-wins)
-
-## Configuration Options
-
-```dart
-SyncConfig(
-  baseUrl: 'https://api.example.com',      // Required
-  authToken: 'token',                       // Optional
-  syncInterval: Duration(minutes: 5),       // Default: 5 minutes
-  maxRetries: 3,                            // Default: 3
-  enableAutoSync: true,                     // Default: true
-  conflictStrategy: ConflictStrategy.lastWriteWins, // Default
-  customBackendAdapter: MyCustomAdapter(),  // Optional: Use custom backend
-)
+```
+┌─────────────┐
+│  Your App   │
+└──────┬──────┘
+       │ save()
+       ▼
+┌─────────────┐     ┌──────────────┐
+│   SyncLayer │────▶│ Local Storage│  (Instant)
+│             │     │    (Isar)    │
+└──────┬──────┘     └──────────────┘
+       │
+       │ (Background)
+       ▼
+┌─────────────┐     ┌──────────────┐
+│ Sync Engine │────▶│   Backend    │  (Auto-sync)
+│   + Queue   │     │     API      │
+└─────────────┘     └──────────────┘
 ```
 
-## Custom Backend Adapter
+**Architecture:**
+- **SyncLayer** - Main API (what you use)
+- **Collections** - Data abstraction (like tables)
+- **SyncEngine** - Background processor (handles sync)
+- **Queue Manager** - Retry logic and ordering
+- **Conflict Resolver** - Handles conflicts automatically
 
-SyncLayer supports custom backends via the adapter pattern:
+---
+
+## Example App
+
+See the [Todo App example](example/todo_app/) for a complete working app with:
+- Offline editing
+- Auto-sync when online
+- Conflict resolution
+- Real-time UI updates
+
+---
+
+## Backend Integration
+
+SyncLayer works with any backend. You need two endpoints:
+
+```typescript
+// Push: Receive changes from client
+POST /sync/{collection}
+Body: { recordId, data, version, updatedAt }
+
+// Pull: Send changes to client
+GET /sync/{collection}?since={timestamp}
+Response: [{ recordId, data, version, updatedAt }]
+```
+
+See [backend example](backend/) for a complete Node.js implementation.
+
+### Works With
+
+- ✅ REST APIs (built-in adapter)
+- ✅ Firebase (custom adapter)
+- ✅ Supabase (custom adapter)
+- ✅ GraphQL (custom adapter)
+- ✅ Any backend (implement `SyncBackendAdapter`)
+
+---
+
+## Advanced Features
+
+### Batch Operations
 
 ```dart
-class FirebaseBackendAdapter implements SyncBackendAdapter {
-  @override
-  Future<void> push({
-    required String collection,
-    required String recordId,
-    required Map<String, dynamic> data,
-    required DateTime timestamp,
-  }) async {
-    // Firebase implementation
-  }
-  
-  // Implement other methods...
-}
+// Save multiple
+await SyncLayer.collection('todos').saveAll([
+  {'text': 'Task 1'},
+  {'text': 'Task 2'},
+  {'text': 'Task 3'},
+]);
 
-// Use it
+// Delete multiple
+await SyncLayer.collection('todos').deleteAll([id1, id2, id3]);
+```
+
+### Manual Sync
+
+```dart
+// Trigger sync immediately (e.g., pull-to-refresh)
+await SyncLayer.syncNow();
+```
+
+### Conflict Resolution
+
+```dart
 await SyncLayer.init(
   SyncConfig(
-    baseUrl: '', // Not needed for Firebase
-    customBackendAdapter: FirebaseBackendAdapter(),
+    baseUrl: 'https://api.example.com',
+    conflictStrategy: ConflictStrategy.lastWriteWins, // Default
+    // or: ConflictStrategy.serverWins
+    // or: ConflictStrategy.clientWins
   ),
 );
 ```
 
-## Event Monitoring
-
-Listen to sync events for logging and analytics:
+### Event Monitoring
 
 ```dart
-SyncLayer.syncEngine.events.listen((event) {
-  print('Sync event: ${event.type}');
-  
+SyncLayerCore.instance.syncEngine.events.listen((event) {
   switch (event.type) {
     case SyncEventType.syncStarted:
       print('Sync started');
-    case SyncEventType.operationSynced:
-      print('Synced: ${event.recordId}');
+      break;
+    case SyncEventType.syncCompleted:
+      print('Sync completed');
+      break;
     case SyncEventType.conflictDetected:
       print('Conflict in ${event.collectionName}');
+      break;
   }
 });
 ```
 
-## Backend API Requirements
+---
 
-Your backend should implement these endpoints:
+## Known Limitations
 
-- `POST /sync/{collection}` - Receive synced data from client
-- `GET /sync/{collection}?since={timestamp}` - Return updates since timestamp
-- `DELETE /sync/{collection}/{recordId}` - Handle deletions
+This is an alpha release. Known issues:
 
-### Example Response Format
+- ⚠️ Pull sync requires explicit `collections` configuration
+- ⚠️ Example backend uses in-memory storage (not production-ready)
+- ⚠️ Limited production testing (2 of 10 validation tests completed)
+- ⚠️ Basic error handling and retry logic
+- ⚠️ No built-in authentication or encryption
 
-**GET /sync/{collection}?since={timestamp}**
-```json
-{
-  "records": [
-    {
-      "recordId": "abc123",
-      "data": {"text": "Hello", "userId": "123"},
-      "updatedAt": "2026-02-13T10:30:00Z",
-      "version": 2
-    }
-  ]
-}
-```
+See [CHANGELOG](CHANGELOG.md) for details.
 
-## Testing
+---
 
-SyncLayer includes comprehensive test coverage:
+## Roadmap
 
-```bash
-# Run all tests
-flutter test
+- [ ] Complete production validation tests
+- [ ] Persistent backend example
+- [ ] Custom conflict resolvers
+- [ ] Encryption support
+- [ ] WebSocket support for real-time sync
+- [ ] Firebase/Supabase adapters
+- [ ] Pagination for large datasets
 
-# Run with coverage
-flutter test --coverage
+---
 
-# Run specific test suite
-flutter test test/unit/
-flutter test test/integration/
-flutter test test/performance/
-```
+## vs Other Solutions
 
-See [TESTING.md](TESTING.md) for detailed testing guide.
+| Feature | SyncLayer | Drift | Firebase | Supabase |
+|---------|-----------|-------|----------|----------|
+| Offline-first | ✅ | ✅ | ❌ | ❌ |
+| Backend agnostic | ✅ | ✅ | ❌ | ❌ |
+| Auto-sync | ✅ | ❌ | ✅ | ✅ |
+| Conflict resolution | ✅ | ❌ | ✅ | ✅ |
+| Queue management | ✅ | ❌ | ✅ | ✅ |
+| Custom backend | ✅ | ✅ | ❌ | ❌ |
+
+**SyncLayer = Drift's offline-first + Firebase's auto-sync + Your own backend**
+
+---
+
+## Contributing
+
+Issues and PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
 
 ## License
 
-Copyright © 2026 Hostspica Private Limited
+MIT License - see [LICENSE](LICENSE) file.
+
+---
+
+## Support
+
+- 📖 [Documentation](https://github.com/hostspicaindia/synclayer/wiki)
+- 🐛 [Issues](https://github.com/hostspicaindia/synclayer/issues)
+- 💬 [Discussions](https://github.com/hostspicaindia/synclayer/discussions)
+
+---
+
+**Made with ❤️ by [Hostspica](https://hostspica.com)**
