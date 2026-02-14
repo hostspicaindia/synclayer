@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0-alpha.4] - 2026-02-14
+
+### Fixed
+- **Updated dependencies** - All dependencies now use latest stable versions
+- Fixed connectivity_plus 6.x breaking changes (now returns List<ConnectivityResult>)
+- Improved pub.dev score compatibility
+
+### Changed
+- Updated connectivity_plus from ^5.0.0 to ^6.1.5
+- Updated dio from ^5.4.0 to ^5.9.1
+- Updated uuid from ^4.0.0 to ^4.5.2
+- Updated path_provider from ^2.1.0 to ^2.1.5
+- Tightened dependency constraints for better downgrade compatibility
+
 ## [0.1.0-alpha.3] - 2026-02-14
 
 ### Documentation

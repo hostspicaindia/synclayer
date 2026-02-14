@@ -4,7 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 /// Service to monitor network connectivity
 class ConnectivityService {
   final Connectivity _connectivity = Connectivity();
-  StreamSubscription<ConnectivityResult>? _subscription;
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
 
   final _connectivityController = StreamController<bool>.broadcast();
   bool _isOnline = false;
@@ -12,13 +12,13 @@ class ConnectivityService {
   /// Initialize connectivity monitoring
   Future<void> init() async {
     // Check initial connectivity
-    final result = await _connectivity.checkConnectivity();
-    _isOnline = _isConnected(result);
+    final results = await _connectivity.checkConnectivity();
+    _isOnline = _isConnected(results);
 
     // Listen to connectivity changes
-    _subscription = _connectivity.onConnectivityChanged.listen((result) {
+    _subscription = _connectivity.onConnectivityChanged.listen((results) {
       final wasOnline = _isOnline;
-      _isOnline = _isConnected(result);
+      _isOnline = _isConnected(results);
 
       if (wasOnline != _isOnline) {
         _connectivityController.add(_isOnline);
@@ -26,10 +26,11 @@ class ConnectivityService {
     });
   }
 
-  bool _isConnected(ConnectivityResult result) {
-    return result == ConnectivityResult.mobile ||
+  bool _isConnected(List<ConnectivityResult> results) {
+    return results.any((result) =>
+        result == ConnectivityResult.mobile ||
         result == ConnectivityResult.wifi ||
-        result == ConnectivityResult.ethernet;
+        result == ConnectivityResult.ethernet);
   }
 
   /// Current connectivity status
