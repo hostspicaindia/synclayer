@@ -297,7 +297,7 @@ MIT License - see [LICENSE](LICENSE) file.
 
 - 📖 [Documentation](https://github.com/hostspicaindia/synclayer/wiki)
 - 🐛 [Issues](https://github.com/hostspicaindia/synclayer/issues)
-- 💬 [Discussions](https://github.com/hostspicaindia/synclayer/discussions)
+- 💬 Questions? Open an issue with the "question" label
 
 ---
 
