@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0-alpha.5] - 2026-02-14
+
+### Fixed
+- **Perfect pub.dev score** - Updated connectivity_plus to ^7.0.0
+- Now supports all latest stable dependencies
+
+### Changed
+- Updated connectivity_plus from ^6.1.5 to ^7.0.0
+
 ## [0.1.0-alpha.4] - 2026-02-14
 
 ### Fixed
