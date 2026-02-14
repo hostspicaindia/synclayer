@@ -295,9 +295,11 @@ MIT License - see [LICENSE](LICENSE) file.
 
 ## Support
 
+- 📖 [Complete API Reference](docs/API_REFERENCE.md)
 - 📖 [Documentation](https://github.com/hostspicaindia/synclayer/wiki)
 - 🐛 [Issues](https://github.com/hostspicaindia/synclayer/issues)
 - 💬 [Discussions](https://github.com/hostspicaindia/synclayer/discussions)
+- 🤝 [Contributing](CONTRIBUTING.md)
 
 ---
 
