@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0-beta.4] - 2026-02-15
+
+### Fixed
+- **Static analysis warnings** - Removed unused `_authToken` fields from adapter files
+  - Firebase adapter: Removed unused field
+  - Supabase adapter: Removed unused field
+  - Appwrite adapter: Removed unused field
+  - Improved pub.dev score from 120/160 to 140/160
+
 ## [0.2.0-beta.3] - 2026-02-15
 
 ### Security

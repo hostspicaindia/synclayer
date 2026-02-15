@@ -35,13 +35,11 @@ import '../network/sync_backend_adapter.dart';
 class AppwriteAdapter implements SyncBackendAdapter {
   final Databases databases;
   final String databaseId;
-  String? _authToken;
 
   AppwriteAdapter({
     required this.databases,
     required this.databaseId,
-    String? authToken,
-  }) : _authToken = authToken;
+  });
 
   @override
   Future<void> push({
@@ -117,8 +115,7 @@ class AppwriteAdapter implements SyncBackendAdapter {
 
   @override
   void updateAuthToken(String token) {
-    _authToken = token;
     // Appwrite auth is handled via Account API
-    // This is here for interface compatibility
+    // Token updates are managed through Appwrite Authentication SDK
   }
 }

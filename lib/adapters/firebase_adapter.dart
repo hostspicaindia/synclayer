@@ -29,12 +29,10 @@ import '../network/sync_backend_adapter.dart';
 /// This is expected - the package is optional and only needed if you use this adapter.
 class FirebaseAdapter implements SyncBackendAdapter {
   final FirebaseFirestore firestore;
-  String? _authToken;
 
   FirebaseAdapter({
     required this.firestore,
-    String? authToken,
-  }) : _authToken = authToken;
+  });
 
   @override
   Future<void> push({
@@ -85,8 +83,7 @@ class FirebaseAdapter implements SyncBackendAdapter {
 
   @override
   void updateAuthToken(String token) {
-    _authToken = token;
     // Firebase auth is handled separately via FirebaseAuth
-    // This is here for interface compatibility
+    // Token updates are managed through Firebase Authentication SDK
   }
 }

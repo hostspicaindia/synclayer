@@ -29,12 +29,10 @@ import '../network/sync_backend_adapter.dart';
 /// This is expected - the package is optional and only needed if you use this adapter.
 class SupabaseAdapter implements SyncBackendAdapter {
   final SupabaseClient client;
-  String? _authToken;
 
   SupabaseAdapter({
     required this.client,
-    String? authToken,
-  }) : _authToken = authToken;
+  });
 
   @override
   Future<void> push({
@@ -85,8 +83,7 @@ class SupabaseAdapter implements SyncBackendAdapter {
 
   @override
   void updateAuthToken(String token) {
-    _authToken = token;
     // Supabase auth is handled via client.auth
-    // This is here for interface compatibility
+    // Token updates are managed through Supabase Authentication SDK
   }
 }
