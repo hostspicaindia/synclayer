@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0-alpha.6] - 2026-02-15
+
+### Added
+- **Built-in platform adapters** - Direct support for popular backends
+  - Firebase Firestore adapter (`FirebaseAdapter`)
+  - Supabase adapter (`SupabaseAdapter`)
+  - Appwrite adapter (`AppwriteAdapter`)
+- Platform Adapters Guide with setup instructions for each platform
+- Example implementations for Firebase and Supabase
+- Comprehensive documentation for custom adapter creation
+
+### Documentation
+- Added `docs/PLATFORM_ADAPTERS.md` with complete setup guides
+- Added `example/firebase_example.dart` showing Firebase integration
+- Added `example/supabase_example.dart` showing Supabase integration
+- Updated README with platform adapter examples
+- Added comparison table for different platforms
+
+### Improved
+- Easier integration with popular backends (no custom adapter needed)
+- Better developer experience for Firebase/Supabase/Appwrite users
+- Clear migration paths between different backends
+
 ## [0.1.0-alpha.5] - 2026-02-14
 
 ### Fixed

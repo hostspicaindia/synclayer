@@ -30,3 +30,5 @@ build/
 # Git
 .git/
 .gitignore
+PLATFORM_ADAPTERS_SUMMARY.md
+IMPLEMENTATION_COMPLETE.md

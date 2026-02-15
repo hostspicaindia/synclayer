@@ -26,15 +26,15 @@ class JsonDataSerializer implements DataSerializer {
 /// Future: Encrypted serializer
 /// class EncryptedDataSerializer implements DataSerializer {
 ///   final String encryptionKey;
-///   
+///
 ///   EncryptedDataSerializer(this.encryptionKey);
-///   
+///
 ///   @override
 ///   String serialize(Map<String, dynamic> data) {
 ///     final json = jsonEncode(data);
 ///     return encrypt(json, encryptionKey);
 ///   }
-///   
+///
 ///   @override
 ///   Map<String, dynamic> deserialize(String serialized) {
 ///     final json = decrypt(serialized, encryptionKey);
@@ -49,7 +49,7 @@ class JsonDataSerializer implements DataSerializer {
 ///     final json = jsonEncode(data);
 ///     return compress(json);
 ///   }
-///   
+///
 ///   @override
 ///   Map<String, dynamic> deserialize(String serialized) {
 ///     final json = decompress(serialized);

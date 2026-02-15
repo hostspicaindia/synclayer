@@ -379,6 +379,96 @@ SyncLayerCore.instance.syncEngine.events.listen((event) {
 
 ## Backend Integration
 
+SyncLayer supports multiple backend platforms through adapters.
+
+### Built-in Adapters
+
+SyncLayer includes ready-to-use adapters for popular platforms:
+
+#### Firebase Firestore
+
+```dart
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:synclayer/synclayer.dart';
+
+await Firebase.initializeApp();
+
+await SyncLayer.init(
+  SyncConfig(
+    baseUrl: 'https://firebaseapp.com', // Not used
+    customBackendAdapter: FirebaseAdapter(
+      firestore: FirebaseFirestore.instance,
+    ),
+    collections: ['todos', 'users'],
+  ),
+);
+```
+
+**Requirements:**
+- Add `cloud_firestore: ^5.7.0` to dependencies
+- Firestore documents must have: `data`, `updatedAt`, `version` fields
+
+#### Supabase
+
+```dart
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:synclayer/synclayer.dart';
+
+await Supabase.initialize(
+  url: 'https://your-project.supabase.co',
+  anonKey: 'your-anon-key',
+);
+
+await SyncLayer.init(
+  SyncConfig(
+    baseUrl: 'https://your-project.supabase.co', // Not used
+    customBackendAdapter: SupabaseAdapter(
+      client: Supabase.instance.client,
+    ),
+    collections: ['todos', 'users'],
+  ),
+);
+```
+
+**Requirements:**
+- Add `supabase_flutter: ^2.9.0` to dependencies
+- Tables must have: `record_id`, `data`, `updated_at`, `version` columns
+
+#### Appwrite
+
+```dart
+import 'package:appwrite/appwrite.dart';
+import 'package:synclayer/synclayer.dart';
+
+final client = Client()
+  ..setEndpoint('https://cloud.appwrite.io/v1')
+  ..setProject('your-project-id');
+
+await SyncLayer.init(
+  SyncConfig(
+    baseUrl: 'https://cloud.appwrite.io', // Not used
+    customBackendAdapter: AppwriteAdapter(
+      databases: Databases(client),
+      databaseId: 'your-database-id',
+    ),
+    collections: ['todos', 'users'],
+  ),
+);
+```
+
+**Requirements:**
+- Add `appwrite: ^14.0.0` to dependencies
+- Collections must have: `data`, `updated_at`, `version` attributes
+
+See [Platform Adapters Guide](PLATFORM_ADAPTERS.md) for detailed setup instructions.
+
+---
+
+### REST API (Default)
+
+If you don't specify a custom adapter, SyncLayer uses the built-in REST adapter.
+
 ### Required Endpoints
 
 Your backend must implement two endpoints:

@@ -4,6 +4,7 @@ export 'core/synclayer_init.dart';
 export 'core/sync_event.dart';
 export 'network/sync_backend_adapter.dart';
 export 'conflict/conflict_resolver.dart';
+export 'adapters/adapters.dart';
 
 import 'dart:convert';
 import 'package:uuid/uuid.dart';

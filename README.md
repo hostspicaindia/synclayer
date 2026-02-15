@@ -59,10 +59,17 @@ await SyncLayer.collection('todos').save({
 
 ```yaml
 dependencies:
-  synclayer: ^0.1.0-alpha.2
+  synclayer: ^0.1.0-alpha.5
+  
+  # Optional: Add if using built-in adapters
+  # cloud_firestore: ^5.7.0      # For Firebase
+  # supabase_flutter: ^2.9.0     # For Supabase
+  # appwrite: ^14.0.0            # For Appwrite
 ```
 
 ### 2. Initialize
+
+**Option A: REST API (default)**
 
 ```dart
 import 'package:synclayer/synclayer.dart';
@@ -74,13 +81,69 @@ void main() async {
     SyncConfig(
       baseUrl: 'https://api.example.com',
       syncInterval: Duration(minutes: 5),
-      collections: ['todos', 'users'], // Collections to sync
+      collections: ['todos', 'users'],
     ),
   );
   
   runApp(MyApp());
 }
 ```
+
+**Option B: Firebase Firestore**
+
+```dart
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:synclayer/synclayer.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await Firebase.initializeApp();
+  
+  await SyncLayer.init(
+    SyncConfig(
+      baseUrl: 'https://firebaseapp.com', // Not used
+      customBackendAdapter: FirebaseAdapter(
+        firestore: FirebaseFirestore.instance,
+      ),
+      collections: ['todos', 'users'],
+    ),
+  );
+  
+  runApp(MyApp());
+}
+```
+
+**Option C: Supabase**
+
+```dart
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:synclayer/synclayer.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await Supabase.initialize(
+    url: 'https://your-project.supabase.co',
+    anonKey: 'your-anon-key',
+  );
+  
+  await SyncLayer.init(
+    SyncConfig(
+      baseUrl: 'https://your-project.supabase.co', // Not used
+      customBackendAdapter: SupabaseAdapter(
+        client: Supabase.instance.client,
+      ),
+      collections: ['todos', 'users'],
+    ),
+  );
+  
+  runApp(MyApp());
+}
+```
+
+See [Platform Adapters Guide](doc/PLATFORM_ADAPTERS.md) for Appwrite and custom backends.
 
 ### 3. Use it
 
@@ -176,11 +239,13 @@ See [backend example](backend/) for a complete Node.js implementation.
 
 ### Works With
 
-- ✅ REST APIs (built-in adapter)
-- ✅ Firebase (custom adapter)
-- ✅ Supabase (custom adapter)
-- ✅ GraphQL (custom adapter)
-- ✅ Any backend (implement `SyncBackendAdapter`)
+- ✅ **REST APIs** (built-in adapter)
+- ✅ **Firebase Firestore** (built-in adapter)
+- ✅ **Supabase** (built-in adapter)
+- ✅ **Appwrite** (built-in adapter)
+- ✅ **Custom backends** (implement `SyncBackendAdapter`)
+
+See [Platform Adapters Guide](doc/PLATFORM_ADAPTERS.md) for setup instructions.
 
 ---
 
@@ -295,7 +360,8 @@ MIT License - see [LICENSE](LICENSE) file.
 
 ## Support
 
-- 📖 [Complete API Reference](docs/API_REFERENCE.md)
+- 📖 [Complete API Reference](doc/API_REFERENCE.md)
+- 🔌 [Platform Adapters Guide](doc/PLATFORM_ADAPTERS.md) - Firebase, Supabase, Appwrite
 - 📖 [Documentation](https://github.com/hostspicaindia/synclayer/wiki)
 - 🐛 [Issues](https://github.com/hostspicaindia/synclayer/issues)
 - 💬 [Discussions](https://github.com/hostspicaindia/synclayer/discussions)
