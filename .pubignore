@@ -23,6 +23,11 @@ PUBLICATION_SUMMARY.md
 WHATS_NEW.md
 TRACKING.md
 project.md
+NEXT_STEPS.md
+
+# Temporary files
+temp_publish_list.txt
+*.tmp
 
 # Internal guides (redundant with doc/ folder)
 ADAPTER_INSTALLATION_GUIDE.md
