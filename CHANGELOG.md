@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0-beta.3] - 2026-02-15
+
+### Security
+- **Removed sensitive files** - Deleted google-services.json from example app
+  - Users must configure their own Firebase project
+  - Improved security by not including any Firebase credentials
+
 ## [0.2.0-beta.2] - 2026-02-15
 
 ### Changed
