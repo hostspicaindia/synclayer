@@ -4,6 +4,8 @@
 
 **Build offline-first Flutter apps in minutes** — Production-grade sync engine with automatic background synchronization and conflict resolution.
 
+Works with REST APIs, Firebase, Supabase, Appwrite, or any custom backend.
+
 ⚠️ **ALPHA VERSION** - Early release. APIs may change. [See known limitations](#known-limitations).
 
 ---
@@ -50,6 +52,21 @@ await SyncLayer.collection('todos').save({
 🔌 **Backend Agnostic** - Works with REST, Firebase, Supabase, or custom backends  
 📦 **Batch Operations** - Save/delete multiple documents efficiently  
 👀 **Reactive** - Watch collections for real-time UI updates  
+
+---
+
+## Supported Backends
+
+### Works With
+
+- ✅ **REST APIs** (built-in adapter)
+- ✅ **Firebase Firestore** (adapter on GitHub)
+- ✅ **Supabase** (adapter on GitHub)
+- ✅ **Appwrite** (adapter on GitHub)
+- ✅ **Custom backends** (implement `SyncBackendAdapter`)
+
+Platform adapters are available in the [GitHub repository](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters).  
+See [Platform Adapters Guide](doc/PLATFORM_ADAPTERS.md) for setup instructions.  
 
 ---
 
@@ -202,17 +219,6 @@ Response: [{ recordId, data, version, updatedAt }]
 ```
 
 See [backend example](backend/) for a complete Node.js implementation.
-
-### Works With
-
-- ✅ **REST APIs** (built-in adapter)
-- ✅ **Firebase Firestore** (adapter on GitHub)
-- ✅ **Supabase** (adapter on GitHub)
-- ✅ **Appwrite** (adapter on GitHub)
-- ✅ **Custom backends** (implement `SyncBackendAdapter`)
-
-Platform adapters are available in the [GitHub repository](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters).  
-See [Platform Adapters Guide](doc/PLATFORM_ADAPTERS.md) for setup instructions.
 
 ---
 
