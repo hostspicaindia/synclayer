@@ -1,15 +1,10 @@
 # Exclude development and documentation files from pub.dev package
 
-# Backend example (not needed in package)
-backend/
-
-# Todo app example (keep main example/ folder)
-example/todo_app/
-
-# Internal documentation
+# Internal development documentation (not needed by users)
 PRODUCTION_VALIDATION.md
 BUG_FIX_PULL_SYNC.md
 SENIOR_REVIEW_RESPONSE_V2.md
+SENIOR_REVIEW_RESPONSE.md
 SENIOR_IMPROVEMENTS_V2.md
 ACTION_PLAN.md
 COMPLETION_REPORT.md
@@ -17,6 +12,24 @@ PHASE2_SUMMARY.md
 PHASE2_COMPLETE.md
 TESTING.md
 ARCHITECTURE_DIAGRAM.md
+PLATFORM_ADAPTERS_SUMMARY.md
+IMPLEMENTATION_COMPLETE.md
+PRODUCTION_READINESS_ASSESSMENT.md
+TEST_RESULTS.md
+TEST_3_LARGE_DATASET.md
+BETA_RELEASE.md
+PROJECT_SUMMARY.md
+PUBLICATION_SUMMARY.md
+WHATS_NEW.md
+TRACKING.md
+project.md
+
+# Internal guides (redundant with doc/ folder)
+ADAPTER_INSTALLATION_GUIDE.md
+FOR_FRONTEND_DEVELOPER.md
+IMPROVEMENTS.md
+QUICKSTART.md
+API.md
 
 # Build artifacts
 .dart_tool/
@@ -26,12 +39,16 @@ ARCHITECTURE_DIAGRAM.md
 build/
 .idea/
 *.iml
+*.log
+flutter_01.log
 
 # Git
 .git/
 .gitignore
-PLATFORM_ADAPTERS_SUMMARY.md
-IMPLEMENTATION_COMPLETE.md
+
+# Test files (not needed in package)
+test/
+integration_test/
 
 # Adapter implementations (require optional dependencies - available on GitHub)
 lib/adapters/firebase_adapter.dart
@@ -44,5 +61,5 @@ example/todo/lib/firebase_options.dart
 example/todo/android/app/google-services.json
 example/todo/ios/Runner/GoogleService-Info.plist
 
-# Test files
-test/
+# Backend example (not needed in package)
+backend/

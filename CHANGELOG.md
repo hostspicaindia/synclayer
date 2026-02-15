@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0-beta.2] - 2026-02-15
+
+### Changed
+- **Cleaned up package** - Removed internal documentation files from pub.dev package
+  - Package size reduced from 344 KB to 312 KB
+  - Only essential files included (SDK code, docs, example)
+  - All internal development docs excluded
+
 ## [0.2.0-beta.1] - 2026-02-15
 
 ### 🎉 Beta Release
