@@ -1,3 +1,33 @@
+/// SyncLayer - Local-first sync SDK for Flutter
+///
+/// A powerful local-first synchronization engine that provides:
+/// - Offline-first data storage with Isar
+/// - Automatic sync when online
+/// - Conflict resolution strategies
+/// - Real-time data updates
+/// - Backend adapters for Firebase, Supabase, Appwrite
+///
+/// ## Quick Start
+///
+/// ```dart
+/// import 'package:synclayer/synclayer.dart';
+///
+/// // Initialize
+/// await SyncLayer.init(
+///   SyncConfig(
+///     baseUrl: 'https://api.example.com',
+///     collections: ['todos'],
+///   ),
+/// );
+///
+/// // Use it
+/// final id = await SyncLayer.collection('todos').save({
+///   'text': 'Buy milk',
+///   'done': false,
+/// });
+/// ```
+///
+/// See the [README](https://pub.dev/packages/synclayer) for more examples.
 library synclayer;
 
 export 'core/synclayer_init.dart';

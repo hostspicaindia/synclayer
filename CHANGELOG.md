@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0-beta.5] - 2026-02-15
+
+### Added
+- **Library-level documentation** - Added comprehensive documentation to main library
+- **Simple example file** - Added example/example.dart for pub.dev recognition
+  - Demonstrates all basic operations
+  - Shows proper initialization and usage patterns
+
+### Improved
+- Better pub.dev score (documentation improvements)
+- Example code now recognized by pub.dev analyzer
+
 ## [0.2.0-beta.4] - 2026-02-15
 
 ### Fixed
