@@ -9,11 +9,19 @@ One-page reference for common tasks.
 ```yaml
 dependencies:
   synclayer: ^0.1.0-alpha.6
-  
-  # Optional - add only what you need:
-  cloud_firestore: ^5.7.0      # For Firebase
-  supabase_flutter: ^2.9.0     # For Supabase
-  appwrite: ^14.0.0            # For Appwrite
+```
+
+**For platform adapters:** Copy adapter from [GitHub](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters) and add platform package:
+
+```yaml
+# Firebase
+cloud_firestore: ^5.7.0
+
+# Supabase
+supabase_flutter: ^2.9.0
+
+# Appwrite
+appwrite: ^14.0.0
 ```
 
 ---
@@ -32,6 +40,10 @@ await SyncLayer.init(
 
 ### Firebase
 ```dart
+// 1. Copy firebase_adapter.dart from GitHub into your project
+// 2. Add cloud_firestore: ^5.7.0 to pubspec.yaml
+import 'adapters/firebase_adapter.dart';
+
 await Firebase.initializeApp();
 await SyncLayer.init(
   SyncConfig(
@@ -45,6 +57,10 @@ await SyncLayer.init(
 
 ### Supabase
 ```dart
+// 1. Copy supabase_adapter.dart from GitHub into your project
+// 2. Add supabase_flutter: ^2.9.0 to pubspec.yaml
+import 'adapters/supabase_adapter.dart';
+
 await Supabase.initialize(url: '...', anonKey: '...');
 await SyncLayer.init(
   SyncConfig(
@@ -58,6 +74,10 @@ await SyncLayer.init(
 
 ### Appwrite
 ```dart
+// 1. Copy appwrite_adapter.dart from GitHub into your project
+// 2. Add appwrite: ^14.0.0 to pubspec.yaml
+import 'adapters/appwrite_adapter.dart';
+
 final client = Client()..setEndpoint('...')..setProject('...');
 await SyncLayer.init(
   SyncConfig(

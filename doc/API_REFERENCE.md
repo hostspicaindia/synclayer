@@ -381,16 +381,27 @@ SyncLayerCore.instance.syncEngine.events.listen((event) {
 
 SyncLayer supports multiple backend platforms through adapters.
 
-### Built-in Adapters
+### Platform Adapters
 
-SyncLayer includes ready-to-use adapters for popular platforms:
+SyncLayer provides adapter implementations for popular platforms. These are available on [GitHub](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters) and can be copied into your project.
+
+#### How to Use Platform Adapters
+
+1. **Copy the adapter** from GitHub into your project (e.g., `lib/adapters/firebase_adapter.dart`)
+2. **Add the platform package** to your `pubspec.yaml`
+3. **Import and use** the adapter in your app
 
 #### Firebase Firestore
 
 ```dart
+// 1. Copy firebase_adapter.dart from GitHub
+// 2. Add to pubspec.yaml:
+//    cloud_firestore: ^5.7.0
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:synclayer/synclayer.dart';
+import 'adapters/firebase_adapter.dart';  // Your copied file
 
 await Firebase.initializeApp();
 
@@ -406,14 +417,18 @@ await SyncLayer.init(
 ```
 
 **Requirements:**
-- Add `cloud_firestore: ^5.7.0` to dependencies
 - Firestore documents must have: `data`, `updatedAt`, `version` fields
 
 #### Supabase
 
 ```dart
+// 1. Copy supabase_adapter.dart from GitHub
+// 2. Add to pubspec.yaml:
+//    supabase_flutter: ^2.9.0
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:synclayer/synclayer.dart';
+import 'adapters/supabase_adapter.dart';  // Your copied file
 
 await Supabase.initialize(
   url: 'https://your-project.supabase.co',
@@ -432,14 +447,18 @@ await SyncLayer.init(
 ```
 
 **Requirements:**
-- Add `supabase_flutter: ^2.9.0` to dependencies
 - Tables must have: `record_id`, `data`, `updated_at`, `version` columns
 
 #### Appwrite
 
 ```dart
+// 1. Copy appwrite_adapter.dart from GitHub
+// 2. Add to pubspec.yaml:
+//    appwrite: ^14.0.0
+
 import 'package:appwrite/appwrite.dart';
 import 'package:synclayer/synclayer.dart';
+import 'adapters/appwrite_adapter.dart';  // Your copied file
 
 final client = Client()
   ..setEndpoint('https://cloud.appwrite.io/v1')
@@ -458,7 +477,6 @@ await SyncLayer.init(
 ```
 
 **Requirements:**
-- Add `appwrite: ^14.0.0` to dependencies
 - Collections must have: `data`, `updated_at`, `version` attributes
 
 See [Platform Adapters Guide](PLATFORM_ADAPTERS.md) for detailed setup instructions.

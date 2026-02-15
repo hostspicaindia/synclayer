@@ -1,10 +1,70 @@
 # Platform Adapters Guide
 
-SyncLayer provides built-in adapters for popular backend platforms. This guide shows you how to use them.
+SyncLayer provides adapter implementations for popular backend platforms.
+
+> **📦 How to Get Adapters:**  
+> Adapter implementations are available in the [GitHub repository](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters).  
+> Simply copy the adapter file you need into your project (e.g., `lib/adapters/firebase_adapter.dart`).  
+> They are not included in the pub.dev package to keep dependencies optional.
 
 ---
 
 ## Overview
+
+Available adapters:
+
+- **Firebase Firestore** - Google's NoSQL cloud database
+- **Supabase** - Open-source Firebase alternative with PostgreSQL
+- **Appwrite** - Open-source backend-as-a-service platform
+
+You can also create custom adapters for any backend by implementing `SyncBackendAdapter`.
+
+---
+
+## How to Use Adapters
+
+### Step 1: Copy Adapter File
+
+Go to [GitHub adapters folder](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters) and copy the adapter you need into your project:
+
+```
+your_project/
+  lib/
+    adapters/
+      firebase_adapter.dart    ← Copy from GitHub
+```
+
+### Step 2: Add Dependencies
+
+Add the required package to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  synclayer: ^0.1.0-alpha.6
+  cloud_firestore: ^5.7.0      # For Firebase
+  # OR
+  supabase_flutter: ^2.9.0     # For Supabase
+  # OR
+  appwrite: ^14.0.0            # For Appwrite
+```
+
+### Step 3: Use the Adapter
+
+Import and use the adapter in your app:
+
+```dart
+import 'package:synclayer/synclayer.dart';
+import 'adapters/firebase_adapter.dart';  // Your copied file
+
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: FirebaseAdapter(...),
+    collections: ['todos'],
+  ),
+);
+```
+
+---
 
 SyncLayer includes ready-to-use adapters for:
 
@@ -18,7 +78,11 @@ You can also create custom adapters for any backend by implementing `SyncBackend
 
 ## Firebase Firestore
 
-### 1. Add Dependencies
+### 1. Copy Adapter
+
+Copy [`firebase_adapter.dart`](https://github.com/hostspicaindia/synclayer/blob/main/lib/adapters/firebase_adapter.dart) from GitHub into your project at `lib/adapters/firebase_adapter.dart`.
+
+### 2. Add Dependencies
 
 ```yaml
 dependencies:
@@ -27,12 +91,13 @@ dependencies:
   cloud_firestore: ^5.7.0
 ```
 
-### 2. Setup Firebase
+### 3. Setup Firebase
 
 ```dart
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:synclayer/synclayer.dart';
+import 'adapters/firebase_adapter.dart';  // Your copied file
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,7 +121,7 @@ void main() async {
 }
 ```
 
-### 3. Firestore Data Structure
+### 4. Firestore Data Structure
 
 The adapter expects documents in this format:
 
@@ -67,7 +132,7 @@ The adapter expects documents in this format:
   - version: int                 // Version number
 ```
 
-### 4. Firestore Security Rules
+### 5. Firestore Security Rules
 
 ```javascript
 rules_version = '2';
@@ -81,7 +146,7 @@ service cloud.firestore {
 }
 ```
 
-### 5. Example Usage
+### 6. Example Usage
 
 ```dart
 // Save data (syncs to Firestore)
@@ -99,7 +164,11 @@ final id = await SyncLayer.collection('todos').save({
 
 ## Supabase
 
-### 1. Add Dependencies
+### 1. Copy Adapter
+
+Copy [`supabase_adapter.dart`](https://github.com/hostspicaindia/synclayer/blob/main/lib/adapters/supabase_adapter.dart) from GitHub into your project at `lib/adapters/supabase_adapter.dart`.
+
+### 2. Add Dependencies
 
 ```yaml
 dependencies:
@@ -107,11 +176,12 @@ dependencies:
   supabase_flutter: ^2.9.0
 ```
 
-### 2. Setup Supabase
+### 3. Setup Supabase
 
 ```dart
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:synclayer/synclayer.dart';
+import 'adapters/supabase_adapter.dart';  // Your copied file
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -138,7 +208,7 @@ void main() async {
 }
 ```
 
-### 3. Database Schema
+### 4. Database Schema
 
 Create tables in Supabase with this structure:
 
@@ -180,7 +250,11 @@ final id = await SyncLayer.collection('todos').save({
 
 ## Appwrite
 
-### 1. Add Dependencies
+### 1. Copy Adapter
+
+Copy [`appwrite_adapter.dart`](https://github.com/hostspicaindia/synclayer/blob/main/lib/adapters/appwrite_adapter.dart) from GitHub into your project at `lib/adapters/appwrite_adapter.dart`.
+
+### 2. Add Dependencies
 
 ```yaml
 dependencies:
@@ -188,11 +262,12 @@ dependencies:
   appwrite: ^14.0.0
 ```
 
-### 2. Setup Appwrite
+### 3. Setup Appwrite
 
 ```dart
 import 'package:appwrite/appwrite.dart';
 import 'package:synclayer/synclayer.dart';
+import 'adapters/appwrite_adapter.dart';  // Your copied file
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -219,7 +294,7 @@ void main() async {
 }
 ```
 
-### 3. Appwrite Collection Setup
+### 4. Appwrite Collection Setup
 
 Create collections in Appwrite Console with these attributes:
 

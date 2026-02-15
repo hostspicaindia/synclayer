@@ -59,12 +59,7 @@ await SyncLayer.collection('todos').save({
 
 ```yaml
 dependencies:
-  synclayer: ^0.1.0-alpha.5
-  
-  # Optional: Add if using built-in adapters
-  # cloud_firestore: ^5.7.0      # For Firebase
-  # supabase_flutter: ^2.9.0     # For Supabase
-  # appwrite: ^14.0.0            # For Appwrite
+  synclayer: ^0.1.0-alpha.6
 ```
 
 ### 2. Initialize
@@ -89,61 +84,32 @@ void main() async {
 }
 ```
 
-**Option B: Firebase Firestore**
+**Option B: Firebase, Supabase, or Appwrite**
+
+Platform adapters are available on [GitHub](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters). Copy the adapter into your project:
 
 ```dart
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:synclayer/synclayer.dart';
+// 1. Add platform package
+dependencies:
+  synclayer: ^0.1.0-alpha.6
+  cloud_firestore: ^5.7.0  # For Firebase
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  await Firebase.initializeApp();
-  
-  await SyncLayer.init(
-    SyncConfig(
-      baseUrl: 'https://firebaseapp.com', // Not used
-      customBackendAdapter: FirebaseAdapter(
-        firestore: FirebaseFirestore.instance,
-      ),
-      collections: ['todos', 'users'],
+// 2. Copy adapter from GitHub into your project
+
+// 3. Use it
+import 'your_adapters/firebase_adapter.dart';
+
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: FirebaseAdapter(
+      firestore: FirebaseFirestore.instance,
     ),
-  );
-  
-  runApp(MyApp());
-}
+    collections: ['todos'],
+  ),
+);
 ```
 
-**Option C: Supabase**
-
-```dart
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:synclayer/synclayer.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  await Supabase.initialize(
-    url: 'https://your-project.supabase.co',
-    anonKey: 'your-anon-key',
-  );
-  
-  await SyncLayer.init(
-    SyncConfig(
-      baseUrl: 'https://your-project.supabase.co', // Not used
-      customBackendAdapter: SupabaseAdapter(
-        client: Supabase.instance.client,
-      ),
-      collections: ['todos', 'users'],
-    ),
-  );
-  
-  runApp(MyApp());
-}
-```
-
-See [Platform Adapters Guide](doc/PLATFORM_ADAPTERS.md) for Appwrite and custom backends.
+See [Platform Adapters Guide](doc/PLATFORM_ADAPTERS.md) for complete instructions.
 
 ### 3. Use it
 
@@ -240,11 +206,12 @@ See [backend example](backend/) for a complete Node.js implementation.
 ### Works With
 
 - ✅ **REST APIs** (built-in adapter)
-- ✅ **Firebase Firestore** (built-in adapter)
-- ✅ **Supabase** (built-in adapter)
-- ✅ **Appwrite** (built-in adapter)
+- ✅ **Firebase Firestore** (adapter on GitHub)
+- ✅ **Supabase** (adapter on GitHub)
+- ✅ **Appwrite** (adapter on GitHub)
 - ✅ **Custom backends** (implement `SyncBackendAdapter`)
 
+Platform adapters are available in the [GitHub repository](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters).  
 See [Platform Adapters Guide](doc/PLATFORM_ADAPTERS.md) for setup instructions.
 
 ---
