@@ -1,11 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synclayer/synclayer.dart';
+import 'package:synclayer/core/synclayer_init.dart';
+import 'package:synclayer/network/sync_backend_adapter.dart';
+import 'dart:convert';
 
 /// Mock backend adapter for testing
 class MockBackendAdapter implements SyncBackendAdapter {
   final List<Map<String, dynamic>> pushedData = [];
-  final List<String> deletedRecords = [];
-  final Map<String, List<SyncRecord>> mockRemoteData = {};
+  final List<Map<String, dynamic>> deletedData = [];
+  final Map<String, List<SyncRecord>> remoteData = {};
 
   @override
   Future<void> push({
@@ -20,6 +23,15 @@ class MockBackendAdapter implements SyncBackendAdapter {
       'data': data,
       'timestamp': timestamp,
     });
+
+    // Simulate backend storing the data
+    remoteData[collection] ??= [];
+    remoteData[collection]!.add(SyncRecord(
+      recordId: recordId,
+      data: data,
+      updatedAt: timestamp,
+      version: 1,
+    ));
   }
 
   @override
@@ -27,7 +39,13 @@ class MockBackendAdapter implements SyncBackendAdapter {
     required String collection,
     DateTime? since,
   }) async {
-    return mockRemoteData[collection] ?? [];
+    final records = remoteData[collection] ?? [];
+
+    if (since == null) {
+      return records;
+    }
+
+    return records.where((r) => r.updatedAt.isAfter(since)).toList();
   }
 
   @override
@@ -35,7 +53,13 @@ class MockBackendAdapter implements SyncBackendAdapter {
     required String collection,
     required String recordId,
   }) async {
-    deletedRecords.add('$collection:$recordId');
+    deletedData.add({
+      'collection': collection,
+      'recordId': recordId,
+    });
+
+    // Remove from remote data
+    remoteData[collection]?.removeWhere((r) => r.recordId == recordId);
   }
 
   @override
@@ -43,12 +67,16 @@ class MockBackendAdapter implements SyncBackendAdapter {
     // Mock implementation
   }
 
-  void addMockRemoteData(String collection, SyncRecord record) {
-    mockRemoteData.putIfAbsent(collection, () => []).add(record);
+  void reset() {
+    pushedData.clear();
+    deletedData.clear();
+    remoteData.clear();
   }
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('Sync Flow Integration Tests', () {
     late MockBackendAdapter mockBackend;
 
@@ -57,146 +85,228 @@ void main() {
 
       await SyncLayer.init(
         SyncConfig(
-          baseUrl: 'https://test.example.com',
-          enableAutoSync: false,
           customBackendAdapter: mockBackend,
+          enableAutoSync: false, // Disable auto-sync for controlled testing
+          collections: ['todos'],
         ),
       );
     });
 
     tearDown(() async {
       await SyncLayer.dispose();
+      mockBackend.reset();
     });
 
     test('should save data locally and sync to backend', () async {
-      final id = await SyncLayer.collection('messages').save({
-        'text': 'Hello World',
-        'timestamp': DateTime.now().toIso8601String(),
-      });
+      // Arrange
+      final data = {'text': 'Buy milk', 'done': false};
 
-      expect(id, isNotEmpty);
-
-      // Retrieve locally
-      final retrieved = await SyncLayer.collection('messages').get(id);
-      expect(retrieved, isNotNull);
-      expect(retrieved!['text'], equals('Hello World'));
-
-      // Trigger sync
+      // Act
+      final id = await SyncLayer.collection('todos').save(data);
       await SyncLayer.syncNow();
 
-      // Verify backend received data
-      await Future.delayed(Duration(milliseconds: 500));
-      expect(mockBackend.pushedData.length, greaterThanOrEqualTo(1));
+      // Assert - Check local storage
+      final localData = await SyncLayer.collection('todos').get(id);
+      expect(localData, isNotNull);
+      expect(localData!['text'], equals('Buy milk'));
 
-      final pushed = mockBackend.pushedData.firstWhere(
-        (item) => item['recordId'] == id,
-      );
-      expect(pushed['data']['text'], equals('Hello World'));
+      // Assert - Check backend received data
+      expect(mockBackend.pushedData, isNotEmpty);
+      expect(mockBackend.pushedData.first['recordId'], equals(id));
+      expect(mockBackend.pushedData.first['data']['text'], equals('Buy milk'));
     });
 
-    test('should handle batch operations', () async {
+    test('should handle batch save operations', () async {
+      // Arrange
       final documents = [
-        {'name': 'Item 1', 'value': 1},
-        {'name': 'Item 2', 'value': 2},
-        {'name': 'Item 3', 'value': 3},
+        {'text': 'Task 1', 'done': false},
+        {'text': 'Task 2', 'done': false},
+        {'text': 'Task 3', 'done': false},
       ];
 
-      final ids = await SyncLayer.collection('items').saveAll(documents);
+      // Act
+      final ids = await SyncLayer.collection('todos').saveAll(documents);
+      await SyncLayer.syncNow();
 
+      // Assert
       expect(ids.length, equals(3));
+      expect(mockBackend.pushedData.length, equals(3));
 
-      final allItems = await SyncLayer.collection('items').getAll();
-      expect(allItems.length, greaterThanOrEqualTo(3));
+      for (var i = 0; i < ids.length; i++) {
+        final localData = await SyncLayer.collection('todos').get(ids[i]);
+        expect(localData, isNotNull);
+        expect(localData!['text'], equals('Task ${i + 1}'));
+      }
     });
 
     test('should handle delete operations', () async {
-      final id = await SyncLayer.collection('messages').save({
-        'text': 'To be deleted',
-      });
-
-      await SyncLayer.collection('messages').delete(id);
-
-      final retrieved = await SyncLayer.collection('messages').get(id);
-      expect(retrieved, isNull);
-
-      // Trigger sync
+      // Arrange
+      final data = {'text': 'To be deleted', 'done': false};
+      final id = await SyncLayer.collection('todos').save(data);
       await SyncLayer.syncNow();
 
-      await Future.delayed(Duration(milliseconds: 500));
-      expect(
-        mockBackend.deletedRecords,
-        contains('messages:$id'),
-      );
+      mockBackend.pushedData.clear();
+
+      // Act
+      await SyncLayer.collection('todos').delete(id);
+      await SyncLayer.syncNow();
+
+      // Assert - Check local storage
+      final localData = await SyncLayer.collection('todos').get(id);
+      expect(localData, isNull);
+
+      // Assert - Check backend received delete
+      expect(mockBackend.deletedData, isNotEmpty);
+      expect(mockBackend.deletedData.first['recordId'], equals(id));
     });
 
     test('should pull remote data and merge locally', () async {
-      // Add mock remote data
-      mockBackend.addMockRemoteData(
-        'messages',
-        SyncRecord(
-          recordId: 'remote_1',
-          data: {'text': 'Remote message', 'source': 'server'},
-          updatedAt: DateTime.now(),
-          version: 1,
-        ),
+      // Arrange - Add data directly to mock backend
+      final remoteRecord = SyncRecord(
+        recordId: 'remote-1',
+        data: {'text': 'Remote task', 'done': false},
+        updatedAt: DateTime.now(),
+        version: 1,
       );
 
-      // Trigger sync (includes pull)
+      mockBackend.remoteData['todos'] = [remoteRecord];
+
+      // Act
       await SyncLayer.syncNow();
 
-      await Future.delayed(Duration(milliseconds: 500));
-
-      // Verify remote data is now local
-      final retrieved = await SyncLayer.collection('messages').get('remote_1');
-      expect(retrieved, isNotNull);
-      expect(retrieved!['text'], equals('Remote message'));
+      // Assert - Check local storage has remote data
+      final localData = await SyncLayer.collection('todos').get('remote-1');
+      expect(localData, isNotNull);
+      expect(localData!['text'], equals('Remote task'));
     });
 
     test('should handle conflict resolution', () async {
-      // Save local data
-      await SyncLayer.collection('messages').save(
-        {'text': 'Local version', 'value': 1},
-        id: 'conflict_record',
-      );
-
-      // Add conflicting remote data
-      mockBackend.addMockRemoteData(
-        'messages',
-        SyncRecord(
-          recordId: 'conflict_record',
-          data: {'text': 'Remote version', 'value': 2},
-          updatedAt: DateTime.now().add(Duration(seconds: 10)),
-          version: 2,
-        ),
-      );
-
-      // Trigger sync
+      // Arrange - Create local data
+      final localData = {'text': 'Local version', 'done': false};
+      final id = await SyncLayer.collection('todos').save(localData);
       await SyncLayer.syncNow();
 
-      await Future.delayed(Duration(milliseconds: 500));
+      // Simulate remote change
+      final remoteRecord = SyncRecord(
+        recordId: id,
+        data: {'text': 'Remote version', 'done': true},
+        updatedAt: DateTime.now().add(Duration(seconds: 5)),
+        version: 2,
+      );
 
-      // With lastWriteWins, remote should win (newer timestamp)
-      final resolved =
-          await SyncLayer.collection('messages').get('conflict_record');
-      expect(resolved, isNotNull);
-      expect(resolved!['text'], equals('Remote version'));
+      mockBackend.remoteData['todos'] = [remoteRecord];
+
+      // Act
+      await SyncLayer.syncNow();
+
+      // Assert - Should have remote version (last-write-wins)
+      final resolvedData = await SyncLayer.collection('todos').get(id);
+      expect(resolvedData, isNotNull);
+      expect(resolvedData!['text'], equals('Remote version'));
+      expect(resolvedData['done'], equals(true));
     });
 
     test('should emit sync events', () async {
+      // Arrange
       final events = <SyncEvent>[];
       final subscription = SyncLayerCore.instance.syncEngine.events.listen(
         (event) => events.add(event),
       );
 
-      await SyncLayer.collection('messages').save({'text': 'Test'});
+      final data = {'text': 'Event test', 'done': false};
+
+      // Act
+      await SyncLayer.collection('todos').save(data);
       await SyncLayer.syncNow();
 
-      await Future.delayed(Duration(milliseconds: 500));
+      // Wait for events to be processed
+      await Future.delayed(Duration(milliseconds: 100));
 
-      expect(events.any((e) => e.type == SyncEventType.syncStarted), isTrue);
-      expect(events.any((e) => e.type == SyncEventType.syncCompleted), isTrue);
+      // Assert
+      expect(events, isNotEmpty);
+      expect(
+        events.any((e) => e.type == SyncEventType.syncStarted),
+        isTrue,
+      );
+      expect(
+        events.any((e) => e.type == SyncEventType.operationQueued),
+        isTrue,
+      );
 
       await subscription.cancel();
+    });
+
+    test('should handle batch delete operations', () async {
+      // Arrange
+      final documents = [
+        {'text': 'Task 1'},
+        {'text': 'Task 2'},
+        {'text': 'Task 3'},
+      ];
+
+      final ids = await SyncLayer.collection('todos').saveAll(documents);
+      await SyncLayer.syncNow();
+
+      mockBackend.deletedData.clear();
+
+      // Act
+      await SyncLayer.collection('todos').deleteAll(ids);
+      await SyncLayer.syncNow();
+
+      // Assert
+      expect(mockBackend.deletedData.length, equals(3));
+
+      for (final id in ids) {
+        final localData = await SyncLayer.collection('todos').get(id);
+        expect(localData, isNull);
+      }
+    });
+
+    test('should watch collection for real-time updates', () async {
+      // Arrange
+      final emittedValues = <List<Map<String, dynamic>>>[];
+      final stream = SyncLayer.collection('todos').watch();
+
+      final subscription = stream.listen((todos) {
+        emittedValues.add(todos);
+      });
+
+      // Wait for initial emission
+      await Future.delayed(Duration(milliseconds: 100));
+
+      // Act
+      await SyncLayer.collection('todos').save({'text': 'Watch test 1'});
+      await Future.delayed(Duration(milliseconds: 100));
+
+      await SyncLayer.collection('todos').save({'text': 'Watch test 2'});
+      await Future.delayed(Duration(milliseconds: 100));
+
+      // Assert
+      expect(emittedValues.length, greaterThanOrEqualTo(2));
+
+      await subscription.cancel();
+    });
+
+    test('should handle update operations', () async {
+      // Arrange
+      final initialData = {'text': 'Original', 'done': false};
+      final id = await SyncLayer.collection('todos').save(initialData);
+      await SyncLayer.syncNow();
+
+      mockBackend.pushedData.clear();
+
+      // Act
+      final updatedData = {'text': 'Updated', 'done': true};
+      await SyncLayer.collection('todos').save(updatedData, id: id);
+      await SyncLayer.syncNow();
+
+      // Assert
+      final localData = await SyncLayer.collection('todos').get(id);
+      expect(localData!['text'], equals('Updated'));
+      expect(localData['done'], equals(true));
+
+      expect(mockBackend.pushedData, isNotEmpty);
+      expect(mockBackend.pushedData.first['data']['text'], equals('Updated'));
     });
   });
 }

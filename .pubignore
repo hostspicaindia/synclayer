@@ -38,3 +38,11 @@ lib/adapters/firebase_adapter.dart
 lib/adapters/supabase_adapter.dart
 lib/adapters/appwrite_adapter.dart
 lib/adapters/adapters.dart
+
+# Example app Firebase config (contains API keys - security)
+example/todo/lib/firebase_options.dart
+example/todo/android/app/google-services.json
+example/todo/ios/Runner/GoogleService-Info.plist
+
+# Test files
+test/

@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synclayer/synclayer.dart';
+import 'package:synclayer/core/synclayer_init.dart';
+import 'package:synclayer/network/sync_backend_adapter.dart';
 
+/// No-op backend adapter for performance testing
 class NoOpBackendAdapter implements SyncBackendAdapter {
   @override
   Future<void> push({
@@ -10,6 +13,7 @@ class NoOpBackendAdapter implements SyncBackendAdapter {
     required DateTime timestamp,
   }) async {
     // No-op for performance testing
+    await Future.delayed(Duration(milliseconds: 1));
   }
 
   @override
@@ -26,20 +30,25 @@ class NoOpBackendAdapter implements SyncBackendAdapter {
     required String recordId,
   }) async {
     // No-op
+    await Future.delayed(Duration(milliseconds: 1));
   }
 
   @override
-  void updateAuthToken(String token) {}
+  void updateAuthToken(String token) {
+    // No-op
+  }
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('Performance Benchmarks', () {
     setUp(() async {
       await SyncLayer.init(
         SyncConfig(
-          baseUrl: 'https://test.example.com',
-          enableAutoSync: false,
           customBackendAdapter: NoOpBackendAdapter(),
+          enableAutoSync: false,
+          collections: ['todos'],
         ),
       );
     });
@@ -48,125 +57,225 @@ void main() {
       await SyncLayer.dispose();
     });
 
-    test('benchmark: save 100 records', () async {
+    test('benchmark: save 100 records individually', () async {
       final stopwatch = Stopwatch()..start();
 
-      for (int i = 0; i < 100; i++) {
-        await SyncLayer.collection('benchmark').save({
-          'index': i,
-          'name': 'Record $i',
-          'timestamp': DateTime.now().toIso8601String(),
+      for (var i = 0; i < 100; i++) {
+        await SyncLayer.collection('todos').save({
+          'text': 'Task $i',
+          'done': false,
+          'priority': i % 3,
         });
       }
 
       stopwatch.stop();
-      print('Time to save 100 records: ${stopwatch.elapsedMilliseconds}ms');
-      expect(
-          stopwatch.elapsedMilliseconds, lessThan(5000)); // Should be under 5s
+      final elapsed = stopwatch.elapsedMilliseconds;
+
+      print('✅ Save 100 records: ${elapsed}ms');
+      expect(elapsed, lessThan(5000)); // Target: < 5 seconds
     });
 
     test('benchmark: batch save 100 records', () async {
       final documents = List.generate(
         100,
         (i) => {
-          'index': i,
-          'name': 'Record $i',
-          'timestamp': DateTime.now().toIso8601String(),
+          'text': 'Task $i',
+          'done': false,
+          'priority': i % 3,
         },
       );
 
       final stopwatch = Stopwatch()..start();
-      await SyncLayer.collection('benchmark').saveAll(documents);
-      stopwatch.stop();
 
-      print(
-          'Time to batch save 100 records: ${stopwatch.elapsedMilliseconds}ms');
-      expect(stopwatch.elapsedMilliseconds, lessThan(5000));
+      await SyncLayer.collection('todos').saveAll(documents);
+
+      stopwatch.stop();
+      final elapsed = stopwatch.elapsedMilliseconds;
+
+      print('✅ Batch save 100 records: ${elapsed}ms');
+      expect(elapsed, lessThan(5000)); // Target: < 5 seconds
     });
 
     test('benchmark: retrieve 100 records', () async {
-      // First, save 100 records
-      for (int i = 0; i < 100; i++) {
-        await SyncLayer.collection('benchmark').save({
-          'index': i,
-          'name': 'Record $i',
-        });
-      }
+      // Setup: Add 100 records
+      final documents = List.generate(
+        100,
+        (i) => {'text': 'Task $i', 'done': false},
+      );
+      await SyncLayer.collection('todos').saveAll(documents);
 
+      // Benchmark retrieval
       final stopwatch = Stopwatch()..start();
-      final records = await SyncLayer.collection('benchmark').getAll();
-      stopwatch.stop();
 
-      print(
-          'Time to retrieve ${records.length} records: ${stopwatch.elapsedMilliseconds}ms');
-      expect(
-          stopwatch.elapsedMilliseconds, lessThan(1000)); // Should be under 1s
-      expect(records.length, greaterThanOrEqualTo(100));
+      final allTodos = await SyncLayer.collection('todos').getAll();
+
+      stopwatch.stop();
+      final elapsed = stopwatch.elapsedMilliseconds;
+
+      print('✅ Retrieve 100 records: ${elapsed}ms');
+      expect(elapsed, lessThan(1000)); // Target: < 1 second
+      expect(allTodos.length, greaterThanOrEqualTo(100));
     });
 
     test('benchmark: delete 100 records', () async {
-      // Save records first
-      final ids = <String>[];
-      for (int i = 0; i < 100; i++) {
-        final id = await SyncLayer.collection('benchmark').save({
-          'index': i,
-        });
-        ids.add(id);
-      }
+      // Setup: Add 100 records
+      final documents = List.generate(
+        100,
+        (i) => {'text': 'Task $i', 'done': false},
+      );
+      final ids = await SyncLayer.collection('todos').saveAll(documents);
 
+      // Benchmark deletion
       final stopwatch = Stopwatch()..start();
-      await SyncLayer.collection('benchmark').deleteAll(ids);
-      stopwatch.stop();
 
-      print('Time to delete 100 records: ${stopwatch.elapsedMilliseconds}ms');
-      expect(
-          stopwatch.elapsedMilliseconds, lessThan(3000)); // Should be under 3s
+      await SyncLayer.collection('todos').deleteAll(ids);
+
+      stopwatch.stop();
+      final elapsed = stopwatch.elapsedMilliseconds;
+
+      print('✅ Delete 100 records: ${elapsed}ms');
+      expect(elapsed, lessThan(3000)); // Target: < 3 seconds
     });
 
     test('benchmark: watch stream updates', () async {
       final stopwatch = Stopwatch()..start();
-      int updateCount = 0;
+      final emittedValues = <List<Map<String, dynamic>>>[];
 
-      final subscription =
-          SyncLayer.collection('benchmark').watch().listen((records) {
-        updateCount++;
+      final stream = SyncLayer.collection('todos').watch();
+      final subscription = stream.listen((todos) {
+        emittedValues.add(todos);
       });
 
-      // Trigger some updates
-      for (int i = 0; i < 10; i++) {
-        await SyncLayer.collection('benchmark').save({
-          'index': i,
-        });
+      // Wait for initial emission
+      await Future.delayed(Duration(milliseconds: 50));
+
+      // Add 10 records
+      for (var i = 0; i < 10; i++) {
+        await SyncLayer.collection('todos').save({'text': 'Task $i'});
+        await Future.delayed(Duration(milliseconds: 10));
       }
 
-      await Future.delayed(Duration(milliseconds: 500));
       stopwatch.stop();
+      final elapsed = stopwatch.elapsedMilliseconds;
 
-      print(
-          'Stream updates received: $updateCount in ${stopwatch.elapsedMilliseconds}ms');
-      expect(updateCount, greaterThan(0));
+      print('✅ Watch stream with 10 updates: ${elapsed}ms');
+      print('   Emissions: ${emittedValues.length}');
+
+      expect(emittedValues, isNotEmpty);
 
       await subscription.cancel();
     });
 
-    test('benchmark: concurrent operations', () async {
+    test('benchmark: concurrent save operations', () async {
       final stopwatch = Stopwatch()..start();
 
-      final futures = <Future>[];
-      for (int i = 0; i < 50; i++) {
-        futures.add(
-          SyncLayer.collection('concurrent').save({
-            'index': i,
-            'name': 'Concurrent $i',
-          }),
+      // Create 50 concurrent save operations
+      final futures = List.generate(
+        50,
+        (i) => SyncLayer.collection('todos').save({
+          'text': 'Concurrent task $i',
+          'done': false,
+        }),
+      );
+
+      await Future.wait(futures);
+
+      stopwatch.stop();
+      final elapsed = stopwatch.elapsedMilliseconds;
+
+      print('✅ 50 concurrent saves: ${elapsed}ms');
+      expect(elapsed, lessThan(5000)); // Target: < 5 seconds
+    });
+
+    test('benchmark: sync 100 operations', () async {
+      // Setup: Add 100 records
+      final documents = List.generate(
+        100,
+        (i) => {'text': 'Task $i', 'done': false},
+      );
+      await SyncLayer.collection('todos').saveAll(documents);
+
+      // Benchmark sync
+      final stopwatch = Stopwatch()..start();
+
+      await SyncLayer.syncNow();
+
+      stopwatch.stop();
+      final elapsed = stopwatch.elapsedMilliseconds;
+
+      print('✅ Sync 100 operations: ${elapsed}ms');
+      expect(elapsed, lessThan(10000)); // Target: < 10 seconds
+    });
+
+    test('benchmark: mixed operations (CRUD)', () async {
+      final stopwatch = Stopwatch()..start();
+
+      // Create 25 records
+      final createDocs = List.generate(
+        25,
+        (i) => {'text': 'Create $i', 'done': false},
+      );
+      final ids = await SyncLayer.collection('todos').saveAll(createDocs);
+
+      // Update 10 records
+      for (var i = 0; i < 10; i++) {
+        await SyncLayer.collection('todos').save(
+          {'text': 'Updated $i', 'done': true},
+          id: ids[i],
         );
       }
 
-      await Future.wait(futures);
-      stopwatch.stop();
+      // Delete 5 records
+      await SyncLayer.collection('todos').deleteAll(ids.sublist(0, 5));
 
-      print('Time for 50 concurrent saves: ${stopwatch.elapsedMilliseconds}ms');
-      expect(stopwatch.elapsedMilliseconds, lessThan(5000));
+      // Read all
+      await SyncLayer.collection('todos').getAll();
+
+      stopwatch.stop();
+      final elapsed = stopwatch.elapsedMilliseconds;
+
+      print('✅ Mixed CRUD operations: ${elapsed}ms');
+      expect(elapsed, lessThan(5000)); // Target: < 5 seconds
+    });
+
+    test('benchmark: get individual records', () async {
+      // Setup: Add 100 records
+      final documents = List.generate(
+        100,
+        (i) => {'text': 'Task $i', 'done': false},
+      );
+      final ids = await SyncLayer.collection('todos').saveAll(documents);
+
+      // Benchmark individual gets
+      final stopwatch = Stopwatch()..start();
+
+      for (final id in ids) {
+        await SyncLayer.collection('todos').get(id);
+      }
+
+      stopwatch.stop();
+      final elapsed = stopwatch.elapsedMilliseconds;
+
+      print('✅ Get 100 individual records: ${elapsed}ms');
+      expect(elapsed, lessThan(2000)); // Target: < 2 seconds
+    });
+
+    test('benchmark: large document save', () async {
+      // Create a large document (1000 fields)
+      final largeDoc = Map.fromIterables(
+        List.generate(1000, (i) => 'field_$i'),
+        List.generate(1000, (i) => 'value_$i'),
+      );
+
+      final stopwatch = Stopwatch()..start();
+
+      await SyncLayer.collection('todos').save(largeDoc);
+
+      stopwatch.stop();
+      final elapsed = stopwatch.elapsedMilliseconds;
+
+      print('✅ Save large document (1000 fields): ${elapsed}ms');
+      expect(elapsed, lessThan(1000)); // Target: < 1 second
     });
   });
 }

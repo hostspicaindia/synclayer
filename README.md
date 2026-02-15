@@ -6,7 +6,7 @@
 
 Works with REST APIs, Firebase, Supabase, Appwrite, or any custom backend.
 
-⚠️ **ALPHA VERSION** - Early release. APIs may change. [See known limitations](#known-limitations).
+⚠️ **BETA VERSION** - Ready for testing. APIs are stable but may evolve based on feedback. [See changelog](#changelog).
 
 ---
 
@@ -80,7 +80,7 @@ You must copy them from the [GitHub repository](https://github.com/hostspicaindi
 
 ```yaml
 dependencies:
-  synclayer: ^0.1.0-alpha.6
+  synclayer: ^0.2.0-beta.1
 ```
 
 ### 2. Initialize
@@ -127,7 +127,7 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/hostspicaindia/synclay
 ```dart
 // 1. Add platform package to pubspec.yaml
 dependencies:
-  synclayer: ^0.1.0-alpha.6
+  synclayer: ^0.2.0-beta.1
   cloud_firestore: ^5.7.0  # For Firebase
 
 // 2. Import the adapter you copied

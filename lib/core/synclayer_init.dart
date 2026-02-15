@@ -30,7 +30,9 @@ class SyncConfig {
   ///
   /// This should be the root URL without trailing slash.
   /// Example: 'https://api.example.com'
-  final String baseUrl;
+  ///
+  /// Required unless [customBackendAdapter] is provided.
+  final String? baseUrl;
 
   /// Optional authentication token for backend requests.
   ///
@@ -96,7 +98,7 @@ class SyncConfig {
   final List<String> collections;
 
   const SyncConfig({
-    required this.baseUrl,
+    this.baseUrl,
     this.authToken,
     this.syncInterval = const Duration(minutes: 5),
     this.maxRetries = 3,
@@ -104,7 +106,10 @@ class SyncConfig {
     this.customBackendAdapter,
     this.conflictStrategy = ConflictStrategy.lastWriteWins,
     this.collections = const [],
-  });
+  }) : assert(
+          baseUrl != null || customBackendAdapter != null,
+          'Either baseUrl or customBackendAdapter must be provided',
+        );
 }
 
 /// Core initialization and lifecycle manager for SyncLayer
@@ -151,7 +156,7 @@ class SyncLayerCore {
     // Initialize backend adapter (use custom or default REST)
     _backendAdapter = _config.customBackendAdapter ??
         RestBackendAdapter(
-          baseUrl: _config.baseUrl,
+          baseUrl: _config.baseUrl!,
           authToken: _config.authToken,
         );
 
