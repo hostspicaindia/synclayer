@@ -60,13 +60,17 @@ await SyncLayer.collection('todos').save({
 ### Works With
 
 - ✅ **REST APIs** (built-in adapter)
-- ✅ **Firebase Firestore** (adapter on GitHub)
-- ✅ **Supabase** (adapter on GitHub)
-- ✅ **Appwrite** (adapter on GitHub)
+- ✅ **Firebase Firestore** (copy adapter from GitHub)
+- ✅ **Supabase** (copy adapter from GitHub)
+- ✅ **Appwrite** (copy adapter from GitHub)
 - ✅ **Custom backends** (implement `SyncBackendAdapter`)
 
-Platform adapters are available in the [GitHub repository](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters).  
-See [Platform Adapters Guide](doc/PLATFORM_ADAPTERS.md) for setup instructions.  
+⚠️ **Note:** Platform adapters (Firebase, Supabase, Appwrite) are NOT in the pub.dev package.  
+You must copy them from the [GitHub repository](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters) into your project.
+
+**Why?** To keep the package lightweight and avoid forcing optional dependencies on all users.
+
+📖 **Setup guide:** [Platform Adapters Guide](https://github.com/hostspicaindia/synclayer/blob/main/doc/PLATFORM_ADAPTERS.md)  
 
 ---
 
@@ -103,19 +107,34 @@ void main() async {
 
 **Option B: Firebase, Supabase, or Appwrite**
 
-Platform adapters are available on [GitHub](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters). Copy the adapter into your project:
+⚠️ **Important:** Platform adapters are NOT included in the pub.dev package. You must copy them from GitHub.
 
+**Quick Install (Windows PowerShell):**
+```powershell
+# Create adapters folder
+New-Item -ItemType Directory -Force -Path lib\adapters
+
+# Download Firebase adapter
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/hostspicaindia/synclayer/main/lib/adapters/firebase_adapter.dart" -OutFile "lib\adapters\firebase_adapter.dart"
+```
+
+**Or manually:**
+1. Go to [GitHub adapters folder](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters)
+2. Copy the adapter file (e.g., `firebase_adapter.dart`)
+3. Paste into your project at `lib/adapters/firebase_adapter.dart`
+
+**Then use it:**
 ```dart
-// 1. Add platform package
+// 1. Add platform package to pubspec.yaml
 dependencies:
   synclayer: ^0.1.0-alpha.6
   cloud_firestore: ^5.7.0  # For Firebase
 
-// 2. Copy adapter from GitHub into your project
+// 2. Import the adapter you copied
+import 'adapters/firebase_adapter.dart';
 
-// 3. Use it
-import 'your_adapters/firebase_adapter.dart';
-
+// 3. Initialize
+await Firebase.initializeApp();
 await SyncLayer.init(
   SyncConfig(
     customBackendAdapter: FirebaseAdapter(
@@ -126,7 +145,7 @@ await SyncLayer.init(
 );
 ```
 
-See [Platform Adapters Guide](doc/PLATFORM_ADAPTERS.md) for complete instructions.
+📖 **Full setup guide:** [Platform Adapters Guide](https://github.com/hostspicaindia/synclayer/blob/main/doc/PLATFORM_ADAPTERS.md)
 
 ### 3. Use it
 

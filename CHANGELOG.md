@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.0-alpha.7] - 2026-02-15
+
+### Documentation
+- **Clarified adapter installation** - Made it crystal clear that platform adapters must be copied from GitHub
+- Added PowerShell commands for quick adapter installation
+- Added prominent warning that adapters are NOT in pub.dev package
+- Improved README for better user experience
+
+### Changed
+- Updated README with clearer instructions for platform adapters
+- Added quick install commands for Windows, Linux, and Mac
+
 ## [0.1.0-alpha.6] - 2026-02-15
 
 ### Added
