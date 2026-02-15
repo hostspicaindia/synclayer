@@ -32,3 +32,9 @@ build/
 .gitignore
 PLATFORM_ADAPTERS_SUMMARY.md
 IMPLEMENTATION_COMPLETE.md
+
+# Adapter implementations (require optional dependencies - available on GitHub)
+lib/adapters/firebase_adapter.dart
+lib/adapters/supabase_adapter.dart
+lib/adapters/appwrite_adapter.dart
+lib/adapters/adapters.dart

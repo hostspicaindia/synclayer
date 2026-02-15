@@ -4,7 +4,8 @@ export 'core/synclayer_init.dart';
 export 'core/sync_event.dart';
 export 'network/sync_backend_adapter.dart';
 export 'conflict/conflict_resolver.dart';
-export 'adapters/adapters.dart';
+// Note: Platform adapters (Firebase, Supabase, Appwrite) are available on GitHub
+// See: https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters
 
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
