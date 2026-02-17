@@ -9,10 +9,12 @@ abstract class SyncBackendAdapter {
     required DateTime timestamp,
   });
 
-  /// Pull data from backend
+  /// Pull data from backend with optional pagination
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
   });
 
   /// Delete data on backend

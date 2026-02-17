@@ -1813,9 +1813,9 @@ const DataRecordSchema = CollectionSchema(
   deserializeProp: _dataRecordDeserializeProp,
   idName: r'id',
   indexes: {
-    r'collectionName': IndexSchema(
-      id: -4238329797778617380,
-      name: r'collectionName',
+    r'collectionName_recordId': IndexSchema(
+      id: -9010060209801202570,
+      name: r'collectionName_recordId',
       unique: false,
       replace: false,
       properties: [
@@ -1823,6 +1823,50 @@ const DataRecordSchema = CollectionSchema(
           name: r'collectionName',
           type: IndexType.hash,
           caseSensitive: true,
+        ),
+        IndexPropertySchema(
+          name: r'recordId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'recordId': IndexSchema(
+      id: 907839981883940929,
+      name: r'recordId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'recordId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'isSynced': IndexSchema(
+      id: -39763503327887510,
+      name: r'isSynced',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'isSynced',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'isDeleted': IndexSchema(
+      id: -786475870904832312,
+      name: r'isDeleted',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'isDeleted',
+          type: IndexType.value,
+          caseSensitive: false,
         )
       ],
     )
@@ -1943,6 +1987,22 @@ extension DataRecordQueryWhereSort
       return query.addWhereClause(const IdWhereClause.any());
     });
   }
+
+  QueryBuilder<DataRecord, DataRecord, QAfterWhere> anyIsSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'isSynced'),
+      );
+    });
+  }
+
+  QueryBuilder<DataRecord, DataRecord, QAfterWhere> anyIsDeleted() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'isDeleted'),
+      );
+    });
+  }
 }
 
 extension DataRecordQueryWhere
@@ -2012,29 +2072,29 @@ extension DataRecordQueryWhere
     });
   }
 
-  QueryBuilder<DataRecord, DataRecord, QAfterWhereClause> collectionNameEqualTo(
-      String collectionName) {
+  QueryBuilder<DataRecord, DataRecord, QAfterWhereClause>
+      collectionNameEqualToAnyRecordId(String collectionName) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'collectionName',
+        indexName: r'collectionName_recordId',
         value: [collectionName],
       ));
     });
   }
 
   QueryBuilder<DataRecord, DataRecord, QAfterWhereClause>
-      collectionNameNotEqualTo(String collectionName) {
+      collectionNameNotEqualToAnyRecordId(String collectionName) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'collectionName',
+              indexName: r'collectionName_recordId',
               lower: [],
               upper: [collectionName],
               includeUpper: false,
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'collectionName',
+              indexName: r'collectionName_recordId',
               lower: [collectionName],
               includeLower: false,
               upper: [],
@@ -2042,15 +2102,196 @@ extension DataRecordQueryWhere
       } else {
         return query
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'collectionName',
+              indexName: r'collectionName_recordId',
               lower: [collectionName],
               includeLower: false,
               upper: [],
             ))
             .addWhereClause(IndexWhereClause.between(
-              indexName: r'collectionName',
+              indexName: r'collectionName_recordId',
               lower: [],
               upper: [collectionName],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<DataRecord, DataRecord, QAfterWhereClause>
+      collectionNameRecordIdEqualTo(String collectionName, String recordId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'collectionName_recordId',
+        value: [collectionName, recordId],
+      ));
+    });
+  }
+
+  QueryBuilder<DataRecord, DataRecord, QAfterWhereClause>
+      collectionNameEqualToRecordIdNotEqualTo(
+          String collectionName, String recordId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'collectionName_recordId',
+              lower: [collectionName],
+              upper: [collectionName, recordId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'collectionName_recordId',
+              lower: [collectionName, recordId],
+              includeLower: false,
+              upper: [collectionName],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'collectionName_recordId',
+              lower: [collectionName, recordId],
+              includeLower: false,
+              upper: [collectionName],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'collectionName_recordId',
+              lower: [collectionName],
+              upper: [collectionName, recordId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<DataRecord, DataRecord, QAfterWhereClause> recordIdEqualTo(
+      String recordId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'recordId',
+        value: [recordId],
+      ));
+    });
+  }
+
+  QueryBuilder<DataRecord, DataRecord, QAfterWhereClause> recordIdNotEqualTo(
+      String recordId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'recordId',
+              lower: [],
+              upper: [recordId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'recordId',
+              lower: [recordId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'recordId',
+              lower: [recordId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'recordId',
+              lower: [],
+              upper: [recordId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<DataRecord, DataRecord, QAfterWhereClause> isSyncedEqualTo(
+      bool isSynced) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'isSynced',
+        value: [isSynced],
+      ));
+    });
+  }
+
+  QueryBuilder<DataRecord, DataRecord, QAfterWhereClause> isSyncedNotEqualTo(
+      bool isSynced) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isSynced',
+              lower: [],
+              upper: [isSynced],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isSynced',
+              lower: [isSynced],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isSynced',
+              lower: [isSynced],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isSynced',
+              lower: [],
+              upper: [isSynced],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<DataRecord, DataRecord, QAfterWhereClause> isDeletedEqualTo(
+      bool isDeleted) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'isDeleted',
+        value: [isDeleted],
+      ));
+    });
+  }
+
+  QueryBuilder<DataRecord, DataRecord, QAfterWhereClause> isDeletedNotEqualTo(
+      bool isDeleted) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isDeleted',
+              lower: [],
+              upper: [isDeleted],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isDeleted',
+              lower: [isDeleted],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isDeleted',
+              lower: [isDeleted],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'isDeleted',
+              lower: [],
+              upper: [isDeleted],
               includeUpper: false,
             ));
       }

@@ -78,11 +78,22 @@ class AppwriteAdapter implements SyncBackendAdapter {
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
   }) async {
     List<String> queries = [];
 
     if (since != null) {
       queries.add(Query.greaterThan('updated_at', since.toIso8601String()));
+    }
+
+    // Apply pagination
+    if (limit != null) {
+      queries.add(Query.limit(limit));
+    }
+
+    if (offset != null) {
+      queries.add(Query.offset(offset));
     }
 
     final response = await databases.listDocuments(

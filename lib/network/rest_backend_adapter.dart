@@ -42,11 +42,15 @@ class RestBackendAdapter implements SyncBackendAdapter {
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
   }) async {
     final response = await _dio.get(
       '/sync/$collection',
       queryParameters: {
         if (since != null) 'since': since.toIso8601String(),
+        if (limit != null) 'limit': limit,
+        if (offset != null) 'offset': offset,
       },
     );
 

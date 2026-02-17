@@ -34,12 +34,16 @@ export 'core/synclayer_init.dart';
 export 'core/sync_event.dart';
 export 'network/sync_backend_adapter.dart';
 export 'conflict/conflict_resolver.dart';
+export 'utils/logger.dart';
+export 'utils/metrics.dart';
 // Note: Platform adapters (Firebase, Supabase, Appwrite) are available on GitHub
 // See: https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters
 
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'core/synclayer_init.dart';
+import 'utils/logger.dart';
+import 'utils/metrics.dart';
 
 /// Main entry point for SyncLayer SDK.
 ///
@@ -159,6 +163,71 @@ class SyncLayer {
   static Future<void> syncNow() async {
     await SyncLayerCore.instance.syncEngine.syncNow();
   }
+
+  /// Get current sync metrics
+  ///
+  /// Returns a snapshot of current sync performance metrics including
+  /// success rates, average duration, conflicts, and error patterns.
+  ///
+  /// Example:
+  /// ```dart
+  /// final metrics = SyncLayer.getMetrics();
+  /// print('Success rate: ${(metrics.successRate * 100).toStringAsFixed(1)}%');
+  /// print('Average sync: ${metrics.averageSyncDuration?.inMilliseconds}ms');
+  /// ```
+  static SyncMetricsSnapshot getMetrics() {
+    return SyncMetrics.instance.getSnapshot();
+  }
+
+  /// Configure logger settings
+  ///
+  /// Customize logging behavior including enabling/disabling logs,
+  /// setting minimum log level, and providing custom logger implementation.
+  ///
+  /// Example:
+  /// ```dart
+  /// SyncLayer.configureLogger(
+  ///   enabled: true,
+  ///   minLevel: LogLevel.warning,
+  ///   customLogger: (level, message, error, stackTrace) {
+  ///     // Send to your analytics service
+  ///     analytics.log(level.name, message);
+  ///   },
+  /// );
+  /// ```
+  static void configureLogger({
+    bool enabled = true,
+    LogLevel minLevel = LogLevel.info,
+    void Function(LogLevel level, String message,
+            [dynamic error, StackTrace? stackTrace])?
+        customLogger,
+  }) {
+    SyncLogger.setEnabled(enabled);
+    SyncLogger.setMinLevel(minLevel);
+    if (customLogger != null) {
+      SyncLogger.setCustomLogger(customLogger);
+    }
+  }
+
+  /// Configure metrics collection
+  ///
+  /// Set a custom handler to receive metric events for analytics or monitoring.
+  ///
+  /// Example:
+  /// ```dart
+  /// SyncLayer.configureMetrics(
+  ///   customHandler: (event) {
+  ///     analytics.track(event.type, event.data);
+  ///   },
+  /// );
+  /// ```
+  static void configureMetrics({
+    void Function(SyncMetricEvent event)? customHandler,
+  }) {
+    if (customHandler != null) {
+      SyncMetrics.setCustomHandler(customHandler);
+    }
+  }
 }
 
 /// Reference to a collection for performing CRUD operations.
@@ -230,21 +299,23 @@ class CollectionReference {
     final core = SyncLayerCore.instance;
     final recordId = id ?? _uuid.v4();
 
-    // Save locally first
+    // Check if record exists BEFORE saving to determine insert vs update
+    final existing = await core.localStorage.getData(
+      collectionName: _name,
+      recordId: recordId,
+    );
+    final isUpdate = existing != null;
+
+    // Save locally
     await core.localStorage.saveData(
       collectionName: _name,
       recordId: recordId,
       data: jsonEncode(data),
     );
 
-    // Queue for sync - access queue manager through sync engine
+    // Queue for sync based on whether record existed before
     final queueManager = core.syncEngine.queueManager;
-    final existing = await core.localStorage.getData(
-      collectionName: _name,
-      recordId: recordId,
-    );
-
-    if (existing != null && existing.createdAt != existing.updatedAt) {
+    if (isUpdate) {
       await queueManager.queueUpdate(
         collectionName: _name,
         recordId: recordId,
@@ -381,6 +452,10 @@ class CollectionReference {
       return records
           .map((r) => jsonDecode(r.data) as Map<String, dynamic>)
           .toList();
+    }).handleError((error, stackTrace) {
+      // Log error and return empty list to prevent stream from breaking
+      print('Error in watch stream for collection $_name: $error');
+      return <Map<String, dynamic>>[];
     });
   }
 
@@ -411,26 +486,54 @@ class CollectionReference {
   Future<List<String>> saveAll(List<Map<String, dynamic>> documents) async {
     final core = SyncLayerCore.instance;
     final ids = <String>[];
+    final operations = <Future<void>>[];
 
-    for (final data in documents) {
-      final id = data['id'] as String? ?? _uuid.v4();
-      ids.add(id);
+    try {
+      // Prepare all operations first
+      for (final data in documents) {
+        final id = data['id'] as String? ?? _uuid.v4();
+        ids.add(id);
 
-      await core.localStorage.saveData(
-        collectionName: _name,
-        recordId: id,
-        data: jsonEncode(data),
-      );
+        // Check if record exists to determine insert vs update
+        final existing = await core.localStorage.getData(
+          collectionName: _name,
+          recordId: id,
+        );
+        final isUpdate = existing != null;
 
-      final queueManager = core.syncEngine.queueManager;
-      await queueManager.queueInsert(
-        collectionName: _name,
-        recordId: id,
-        data: data,
-      );
+        // Save to local storage
+        await core.localStorage.saveData(
+          collectionName: _name,
+          recordId: id,
+          data: jsonEncode(data),
+        );
+
+        // Queue for sync
+        final queueManager = core.syncEngine.queueManager;
+        if (isUpdate) {
+          operations.add(queueManager.queueUpdate(
+            collectionName: _name,
+            recordId: id,
+            data: data,
+          ));
+        } else {
+          operations.add(queueManager.queueInsert(
+            collectionName: _name,
+            recordId: id,
+            data: data,
+          ));
+        }
+      }
+
+      // Execute all queue operations
+      await Future.wait(operations);
+      return ids;
+    } catch (e) {
+      // If any operation fails, log the error
+      // Note: Isar handles transaction rollback automatically for write operations
+      print('Error in saveAll for collection $_name: $e');
+      rethrow;
     }
-
-    return ids;
   }
 
   /// Deletes multiple documents in a single batch operation.
@@ -454,17 +557,30 @@ class CollectionReference {
   /// ```
   Future<void> deleteAll(List<String> ids) async {
     final core = SyncLayerCore.instance;
+    final operations = <Future<void>>[];
 
-    for (final id in ids) {
-      await core.localStorage.deleteData(
-        collectionName: _name,
-        recordId: id,
-      );
+    try {
+      // Delete from local storage first
+      for (final id in ids) {
+        await core.localStorage.deleteData(
+          collectionName: _name,
+          recordId: id,
+        );
 
-      await core.syncEngine.queueManager.queueDelete(
-        collectionName: _name,
-        recordId: id,
-      );
+        // Queue delete operations
+        operations.add(core.syncEngine.queueManager.queueDelete(
+          collectionName: _name,
+          recordId: id,
+        ));
+      }
+
+      // Execute all queue operations
+      await Future.wait(operations);
+    } catch (e) {
+      // If any operation fails, log the error
+      // Note: Isar handles transaction rollback automatically for write operations
+      print('Error in deleteAll for collection $_name: $e');
+      rethrow;
     }
   }
 }

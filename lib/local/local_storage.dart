@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'local_models.dart';
@@ -59,17 +61,11 @@ class LocalStorage {
     });
   }
 
-  /// Generate SHA-1 hash for data
+  /// Generate SHA-256 hash for data integrity verification
   String _generateHash(String data) {
-    // Simple hash implementation using data length and content
-    // In production, use crypto package for proper SHA-1
-    final bytes = data.codeUnits;
-    int hash = 0;
-    for (final byte in bytes) {
-      hash = ((hash << 5) - hash) + byte;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return hash.abs().toString();
+    final bytes = utf8.encode(data);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
   /// Get data by record ID
@@ -139,6 +135,15 @@ class LocalStorage {
 
     await _isar.writeTxn(() async {
       await _isar.syncOperations.put(operation);
+    });
+  }
+
+  /// Add multiple operations to sync queue in a single transaction
+  Future<void> addToSyncQueueBatch(List<SyncOperation> operations) async {
+    _ensureInitialized();
+
+    await _isar.writeTxn(() async {
+      await _isar.syncOperations.putAll(operations);
     });
   }
 

@@ -31,9 +31,10 @@ class SyncOperation {
 class DataRecord {
   Id id = Isar.autoIncrement;
 
-  @Index()
+  @Index(composite: [CompositeIndex('recordId')])
   late String collectionName;
 
+  @Index()
   late String recordId; // User-defined ID
 
   late String data; // JSON string
@@ -42,8 +43,10 @@ class DataRecord {
 
   late DateTime updatedAt;
 
+  @Index()
   bool isSynced = false;
 
+  @Index()
   bool isDeleted = false;
 
   // Sync metadata for conflict resolution

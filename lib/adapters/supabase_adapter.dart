@@ -52,11 +52,20 @@ class SupabaseAdapter implements SyncBackendAdapter {
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
   }) async {
-    PostgrestFilterBuilder query = client.from(collection).select();
+    dynamic query = client.from(collection).select();
 
     if (since != null) {
       query = query.gt('updated_at', since.toIso8601String());
+    }
+
+    // Apply pagination - range handles both limit and offset
+    if (offset != null && limit != null) {
+      query = query.range(offset, offset + limit - 1);
+    } else if (limit != null) {
+      query = query.limit(limit);
     }
 
     final response = await query;

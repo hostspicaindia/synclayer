@@ -52,12 +52,28 @@ class FirebaseAdapter implements SyncBackendAdapter {
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
   }) async {
     Query query = firestore.collection(collection);
 
     if (since != null) {
       query =
           query.where('updatedAt', isGreaterThan: Timestamp.fromDate(since));
+    }
+
+    // Apply pagination
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+
+    // Note: Firestore doesn't have native offset, so we skip documents
+    // For better performance, consider using cursor-based pagination in production
+    if (offset != null && offset > 0) {
+      final skipSnapshot = await query.limit(offset).get();
+      if (skipSnapshot.docs.isNotEmpty) {
+        query = query.startAfterDocument(skipSnapshot.docs.last);
+      }
     }
 
     final snapshot = await query.get();
