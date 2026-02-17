@@ -14,7 +14,7 @@ Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  synclayer: ^0.2.0-beta.7
+  synclayer: ^1.1.0
 ```
 
 Run:
@@ -85,6 +85,7 @@ class MyApp extends StatelessWidget {
 - [Initialization](#initialization)
 - [Logging & Metrics](#logging--metrics)
 - [Collections](#collections)
+- [Query & Filtering](#query--filtering-new-in-v110)
 - [Configuration](#configuration)
 - [Events](#events)
 - [Backend Integration](#backend-integration)
@@ -499,6 +500,267 @@ Delete multiple documents in a single batch operation.
 **Example:**
 ```dart
 await collection.deleteAll(['id1', 'id2', 'id3']);
+```
+
+---
+
+## Query & Filtering (NEW in v1.1.0!)
+
+SyncLayer now includes a powerful query and filtering API for efficiently querying local data.
+
+### `CollectionReference.where(String field, {...})`
+
+Filter documents based on field values. Returns a `QueryBuilder` that can be further refined.
+
+**Parameters:**
+- `field` (String) - Field name to filter on (supports dot notation for nested fields)
+- Operator parameters (one required):
+  - `isEqualTo` - Exact match
+  - `isNotEqualTo` - Not equal
+  - `isGreaterThan` - Greater than
+  - `isGreaterThanOrEqualTo` - Greater or equal
+  - `isLessThan` - Less than
+  - `isLessThanOrEqualTo` - Less or equal
+  - `startsWith` (String) - String starts with
+  - `endsWith` (String) - String ends with
+  - `contains` (String) - String contains
+  - `arrayContains` - Array contains value
+  - `arrayContainsAny` (List) - Array contains any of values
+  - `whereIn` (List) - Value in list
+  - `whereNotIn` (List) - Value not in list
+  - `isNull` (bool) - Field is null (true) or not null (false)
+
+**Returns:** `QueryBuilder`
+
+**Examples:**
+```dart
+// Simple filter
+final incompleteTodos = await collection
+  .where('done', isEqualTo: false)
+  .get();
+
+// Multiple conditions (AND logic)
+final urgentTodos = await collection
+  .where('done', isEqualTo: false)
+  .where('priority', isGreaterThan: 5)
+  .get();
+
+// String operations
+final searchResults = await collection
+  .where('text', contains: 'urgent')
+  .get();
+
+// Array operations
+final workTodos = await collection
+  .where('tags', arrayContains: 'work')
+  .get();
+
+// Nested fields (dot notation)
+final userTodos = await collection
+  .where('user.name', isEqualTo: 'John')
+  .get();
+
+// Null checks
+final noDueDate = await collection
+  .where('dueDate', isNull: true)
+  .get();
+```
+
+---
+
+### `CollectionReference.orderBy(String field, {bool descending})`
+
+Sort documents by a field. Returns a `QueryBuilder` that can be further refined.
+
+**Parameters:**
+- `field` (String) - Field name to sort by
+- `descending` (bool, optional) - Sort in descending order (default: false)
+
+**Returns:** `QueryBuilder`
+
+**Examples:**
+```dart
+// Sort ascending
+final sorted = await collection
+  .orderBy('priority')
+  .get();
+
+// Sort descending
+final sorted = await collection
+  .orderBy('createdAt', descending: true)
+  .get();
+
+// Multiple sort fields
+final sorted = await collection
+  .orderBy('priority', descending: true)
+  .orderBy('createdAt')
+  .get();
+```
+
+---
+
+### `CollectionReference.limit(int count)`
+
+Limit the number of results. Returns a `QueryBuilder` that can be further refined.
+
+**Parameters:**
+- `count` (int) - Maximum number of documents to return
+
+**Returns:** `QueryBuilder`
+
+**Example:**
+```dart
+// Get first 10 documents
+final first10 = await collection
+  .limit(10)
+  .get();
+```
+
+---
+
+### `CollectionReference.offset(int count)`
+
+Skip a number of documents (for pagination). Returns a `QueryBuilder` that can be further refined.
+
+**Parameters:**
+- `count` (int) - Number of documents to skip
+
+**Returns:** `QueryBuilder`
+
+**Example:**
+```dart
+// Get page 2 (skip 10, take 10)
+final page2 = await collection
+  .offset(10)
+  .limit(10)
+  .get();
+```
+
+---
+
+### `QueryBuilder.get()`
+
+Execute the query and return results.
+
+**Returns:** `Future<List<Map<String, dynamic>>>`
+
+**Example:**
+```dart
+final results = await collection
+  .where('done', isEqualTo: false)
+  .orderBy('priority', descending: true)
+  .limit(20)
+  .get();
+```
+
+---
+
+### `QueryBuilder.watch()`
+
+Watch query results for changes. Returns a stream that emits whenever matching documents change.
+
+**Returns:** `Stream<List<Map<String, dynamic>>>`
+
+**Example:**
+```dart
+StreamBuilder<List<Map<String, dynamic>>>(
+  stream: collection
+    .where('done', isEqualTo: false)
+    .watch(),
+  builder: (context, snapshot) {
+    if (!snapshot.hasData) return CircularProgressIndicator();
+    
+    final incompleteTodos = snapshot.data!;
+    return ListView.builder(
+      itemCount: incompleteTodos.length,
+      itemBuilder: (context, index) {
+        return ListTile(title: Text(incompleteTodos[index]['text']));
+      },
+    );
+  },
+);
+```
+
+---
+
+### `QueryBuilder.first()`
+
+Get the first matching document or null.
+
+**Returns:** `Future<Map<String, dynamic>?>`
+
+**Example:**
+```dart
+final highestPriority = await collection
+  .where('done', isEqualTo: false)
+  .orderBy('priority', descending: true)
+  .first();
+```
+
+---
+
+### `QueryBuilder.count()`
+
+Count the number of matching documents.
+
+**Returns:** `Future<int>`
+
+**Example:**
+```dart
+final completedCount = await collection
+  .where('done', isEqualTo: true)
+  .count();
+```
+
+---
+
+### Query Examples
+
+**Complex Query:**
+```dart
+// Get incomplete, high-priority todos for current user,
+// sorted by priority, limited to 20 results
+final results = await SyncLayer.collection('todos')
+  .where('done', isEqualTo: false)
+  .where('priority', isGreaterThanOrEqualTo: 5)
+  .where('userId', isEqualTo: currentUserId)
+  .orderBy('priority', descending: true)
+  .orderBy('createdAt')
+  .limit(20)
+  .get();
+```
+
+**Pagination:**
+```dart
+// Page 1
+final page1 = await collection.limit(10).get();
+
+// Page 2
+final page2 = await collection.offset(10).limit(10).get();
+
+// Page 3
+final page3 = await collection.offset(20).limit(10).get();
+```
+
+**Search:**
+```dart
+// Search todos by text
+final searchResults = await collection
+  .where('text', contains: searchQuery)
+  .orderBy('createdAt', descending: true)
+  .get();
+```
+
+**Reactive Filtered List:**
+```dart
+// Watch incomplete todos (updates automatically)
+collection
+  .where('done', isEqualTo: false)
+  .watch()
+  .listen((todos) {
+    print('Incomplete todos: ${todos.length}');
+    updateUI(todos);
+  });
 ```
 
 ---

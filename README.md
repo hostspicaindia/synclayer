@@ -55,6 +55,7 @@ await SyncLayer.collection('todos').save({
 🔌 **Backend Agnostic** - Works with REST, Firebase, Supabase, or custom backends  
 📦 **Batch Operations** - Save/delete multiple documents efficiently  
 👀 **Reactive** - Watch collections for real-time UI updates  
+🔍 **Query & Filter** - Powerful querying with sorting and pagination (NEW in v1.1.0!)  
 📊 **Metrics & Telemetry** - Track sync performance and success rates  
 📝 **Structured Logging** - Production-ready logging framework  
 ⚡ **High Performance** - 50-90% faster with optimizations  
@@ -87,7 +88,7 @@ You must copy them from the [GitHub repository](https://github.com/hostspicaindi
 
 ```yaml
 dependencies:
-  synclayer: ^0.2.0-beta.7
+  synclayer: ^1.1.0
 ```
 
 ### 2. Initialize
@@ -134,7 +135,7 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/hostspicaindia/synclay
 ```dart
 // 1. Add platform package to pubspec.yaml
 dependencies:
-  synclayer: ^0.2.0-beta.7
+  synclayer: ^1.1.0
   cloud_firestore: ^5.7.0  # For Firebase
 
 // 2. Import the adapter you copied
@@ -174,6 +175,13 @@ await SyncLayer.collection('todos').save({
 
 // Delete
 await SyncLayer.collection('todos').delete(id);
+
+// Query & Filter (NEW in v1.1.0!)
+final incompleteTodos = await SyncLayer.collection('todos')
+  .where('done', isEqualTo: false)
+  .orderBy('priority', descending: true)
+  .limit(10)
+  .get();
 
 // Watch for changes (reactive UI)
 StreamBuilder(
@@ -249,6 +257,86 @@ See [backend example](backend/) for a complete Node.js implementation.
 ---
 
 ## Advanced Features
+
+### Query & Filtering (NEW in v1.1.0!)
+
+```dart
+// Basic filtering
+final incompleteTodos = await SyncLayer.collection('todos')
+  .where('done', isEqualTo: false)
+  .get();
+
+// Multiple conditions
+final urgentTodos = await SyncLayer.collection('todos')
+  .where('done', isEqualTo: false)
+  .where('priority', isGreaterThan: 5)
+  .get();
+
+// String operations
+final searchResults = await SyncLayer.collection('todos')
+  .where('text', contains: 'urgent')
+  .get();
+
+// Sorting
+final sortedTodos = await SyncLayer.collection('todos')
+  .orderBy('priority', descending: true)
+  .orderBy('createdAt')
+  .get();
+
+// Pagination
+final page1 = await SyncLayer.collection('todos')
+  .limit(10)
+  .get();
+
+final page2 = await SyncLayer.collection('todos')
+  .offset(10)
+  .limit(10)
+  .get();
+
+// Complex queries
+final results = await SyncLayer.collection('todos')
+  .where('done', isEqualTo: false)
+  .where('priority', isGreaterThanOrEqualTo: 5)
+  .where('userId', isEqualTo: currentUserId)
+  .orderBy('priority', descending: true)
+  .limit(20)
+  .get();
+
+// Reactive queries with filters
+SyncLayer.collection('todos')
+  .where('done', isEqualTo: false)
+  .watch()
+  .listen((todos) {
+    print('Incomplete todos: ${todos.length}');
+  });
+
+// Array operations
+final workTodos = await SyncLayer.collection('todos')
+  .where('tags', arrayContains: 'work')
+  .get();
+
+// Nested fields
+final userTodos = await SyncLayer.collection('todos')
+  .where('user.name', isEqualTo: 'John')
+  .get();
+
+// Utility methods
+final firstTodo = await SyncLayer.collection('todos')
+  .where('done', isEqualTo: false)
+  .first();
+
+final count = await SyncLayer.collection('todos')
+  .where('done', isEqualTo: true)
+  .count();
+```
+
+**Supported Operators:**
+- Comparison: `isEqualTo`, `isNotEqualTo`, `isGreaterThan`, `isLessThan`, etc.
+- String: `startsWith`, `endsWith`, `contains`
+- Array: `arrayContains`, `arrayContainsAny`, `whereIn`, `whereNotIn`
+- Null: `isNull`, `isNotNull`
+
+See [query example](example/query_example.dart) for more details.
 
 ### Batch Operations
 

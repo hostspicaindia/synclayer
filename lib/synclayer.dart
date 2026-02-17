@@ -36,6 +36,8 @@ export 'network/sync_backend_adapter.dart';
 export 'conflict/conflict_resolver.dart';
 export 'utils/logger.dart';
 export 'utils/metrics.dart';
+export 'query/query_builder.dart';
+export 'query/query_operators.dart';
 // Note: Platform adapters (Firebase, Supabase, Appwrite) are available on GitHub
 // See: https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters
 
@@ -44,6 +46,7 @@ import 'package:uuid/uuid.dart';
 import 'core/synclayer_init.dart';
 import 'utils/logger.dart';
 import 'utils/metrics.dart';
+import 'query/query_builder.dart';
 
 /// Main entry point for SyncLayer SDK.
 ///
@@ -582,5 +585,140 @@ class CollectionReference {
       print('Error in deleteAll for collection $_name: $e');
       rethrow;
     }
+  }
+
+  /// Creates a query builder for filtering and sorting documents.
+  ///
+  /// Use this to build complex queries with multiple conditions, sorting,
+  /// and pagination. The query builder provides a fluent API for constructing
+  /// queries.
+  ///
+  /// Parameters:
+  /// - [field]: The field name to filter on.
+  /// - All other parameters are query operators (see [QueryBuilder.where]).
+  ///
+  /// Returns:
+  /// A [QueryBuilder] that can be further refined with additional conditions.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Simple filter
+  /// final incompleteTodos = await collection
+  ///     .where('done', isEqualTo: false)
+  ///     .get();
+  ///
+  /// // Multiple conditions
+  /// final highPriorityTodos = await collection
+  ///     .where('done', isEqualTo: false)
+  ///     .where('priority', isGreaterThan: 5)
+  ///     .orderBy('priority', descending: true)
+  ///     .limit(10)
+  ///     .get();
+  ///
+  /// // Watch with filters
+  /// collection
+  ///     .where('userId', isEqualTo: currentUserId)
+  ///     .watch()
+  ///     .listen((todos) {
+  ///       print('User todos: ${todos.length}');
+  ///     });
+  /// ```
+  QueryBuilder where(
+    String field, {
+    dynamic isEqualTo,
+    dynamic isNotEqualTo,
+    dynamic isGreaterThan,
+    dynamic isGreaterThanOrEqualTo,
+    dynamic isLessThan,
+    dynamic isLessThanOrEqualTo,
+    String? startsWith,
+    String? endsWith,
+    String? contains,
+    dynamic arrayContains,
+    List<dynamic>? arrayContainsAny,
+    List<dynamic>? whereIn,
+    List<dynamic>? whereNotIn,
+    bool? isNull,
+  }) {
+    return QueryBuilder(_name).where(
+      field,
+      isEqualTo: isEqualTo,
+      isNotEqualTo: isNotEqualTo,
+      isGreaterThan: isGreaterThan,
+      isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,
+      isLessThan: isLessThan,
+      isLessThanOrEqualTo: isLessThanOrEqualTo,
+      startsWith: startsWith,
+      endsWith: endsWith,
+      contains: contains,
+      arrayContains: arrayContains,
+      arrayContainsAny: arrayContainsAny,
+      whereIn: whereIn,
+      whereNotIn: whereNotIn,
+      isNull: isNull,
+    );
+  }
+
+  /// Creates a query builder with sorting.
+  ///
+  /// Use this to sort documents without filtering.
+  ///
+  /// Parameters:
+  /// - [field]: The field name to sort by.
+  /// - [descending]: Whether to sort in descending order (default: false).
+  ///
+  /// Returns:
+  /// A [QueryBuilder] that can be further refined.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Sort by creation date (newest first)
+  /// final todos = await collection
+  ///     .orderBy('createdAt', descending: true)
+  ///     .get();
+  /// ```
+  QueryBuilder orderBy(String field, {bool descending = false}) {
+    return QueryBuilder(_name).orderBy(field, descending: descending);
+  }
+
+  /// Creates a query builder with a limit.
+  ///
+  /// Use this to limit the number of results without filtering.
+  ///
+  /// Parameters:
+  /// - [count]: Maximum number of documents to return.
+  ///
+  /// Returns:
+  /// A [QueryBuilder] that can be further refined.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Get first 10 todos
+  /// final todos = await collection.limit(10).get();
+  /// ```
+  QueryBuilder limit(int count) {
+    return QueryBuilder(_name).limit(count);
+  }
+
+  /// Creates a query builder with an offset.
+  ///
+  /// Use this for pagination by skipping a number of documents.
+  ///
+  /// Parameters:
+  /// - [count]: Number of documents to skip.
+  ///
+  /// Returns:
+  /// A [QueryBuilder] that can be further refined.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Get page 2 (skip first 10, take next 10)
+  /// final todos = await collection
+  ///     .offset(10)
+  ///     .limit(10)
+  ///     .get();
+  /// ```
+  QueryBuilder offset(int count) {
+    return QueryBuilder(_name).offset(count);
   }
 }
