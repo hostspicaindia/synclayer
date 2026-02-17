@@ -69,3 +69,11 @@ example/todo/ios/Runner/GoogleService-Info.plist
 
 # Backend example (not needed in package)
 backend/
+
+# Website folder (documentation site - not needed in package)
+website/
+
+# Archive files
+*.rar
+*.zip
+*.tar.gz
