@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0-beta.8] - 2026-02-17
+
+### Documentation
+- **Complete API Reference** - Updated with comprehensive v0.2.0-beta.7 documentation
+  - Added complete Logging & Metrics section with examples
+  - Added Performance section documenting 90%, 80%, 70% improvements
+  - Updated all version numbers to current release
+  - Added detailed examples for all new features
+- **Repository Cleanup** - Removed 25 internal documentation files
+  - Package size optimized to 606 KB
+  - Clean, professional repository structure
+
 ## [0.2.0-beta.7] - 2026-02-16
 
 ### Fixed - Critical Issues
