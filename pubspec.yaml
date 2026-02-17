@@ -1,6 +1,6 @@
 name: synclayer
 description: A local-first sync SDK for Flutter with offline support, automatic conflict resolution, and real-time synchronization.
-version: 0.2.0-beta.8
+version: 1.0.0
 homepage: https://sdk.hostspica.com/flutter/synclayer
 repository: https://github.com/hostspicaindia/synclayer
 issue_tracker: https://github.com/hostspicaindia/synclayer/issues
