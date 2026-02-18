@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synclayer/synclayer.dart';
-import 'package:synclayer/network/sync_backend_adapter.dart';
 import 'package:todo/main.dart';
 import 'package:todo/screens/todo_screen.dart';
 

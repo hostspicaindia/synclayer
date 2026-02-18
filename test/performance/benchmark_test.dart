@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synclayer/synclayer.dart';
-import 'package:synclayer/core/synclayer_init.dart';
-import 'package:synclayer/network/sync_backend_adapter.dart';
 
 /// No-op backend adapter for performance testing
 class NoOpBackendAdapter implements SyncBackendAdapter {
@@ -20,6 +18,9 @@ class NoOpBackendAdapter implements SyncBackendAdapter {
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
+    SyncFilter? filter,
   }) async {
     return [];
   }

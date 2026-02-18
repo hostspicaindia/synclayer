@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../network/sync_backend_adapter.dart';
+import '../sync/sync_filter.dart';
 
 /// Supabase adapter for SyncLayer
 ///
@@ -54,18 +55,30 @@ class SupabaseAdapter implements SyncBackendAdapter {
     DateTime? since,
     int? limit,
     int? offset,
+    SyncFilter? filter,
   }) async {
     dynamic query = client.from(collection).select();
 
-    if (since != null) {
-      query = query.gt('updated_at', since.toIso8601String());
+    // Use filter's since if provided, otherwise use since parameter
+    final effectiveSince = filter?.since ?? since;
+    if (effectiveSince != null) {
+      query = query.gt('updated_at', effectiveSince.toIso8601String());
     }
 
-    // Apply pagination - range handles both limit and offset
-    if (offset != null && limit != null) {
-      query = query.range(offset, offset + limit - 1);
-    } else if (limit != null) {
-      query = query.limit(limit);
+    // Apply filter where conditions
+    if (filter?.where != null) {
+      for (final entry in filter!.where!.entries) {
+        // Supabase uses JSON operators for nested data
+        query = query.eq('data->${entry.key}', entry.value);
+      }
+    }
+
+    // Apply pagination - use filter's limit if provided
+    final effectiveLimit = filter?.limit ?? limit;
+    if (offset != null && effectiveLimit != null) {
+      query = query.range(offset, offset + effectiveLimit - 1);
+    } else if (effectiveLimit != null) {
+      query = query.limit(effectiveLimit);
     }
 
     final response = await query;
@@ -73,9 +86,16 @@ class SupabaseAdapter implements SyncBackendAdapter {
 
     return data.map((item) {
       final record = item as Map<String, dynamic>;
+      var recordData = record['data'] as Map<String, dynamic>;
+
+      // Apply field filtering if specified
+      if (filter != null) {
+        recordData = filter.applyFieldFilter(recordData);
+      }
+
       return SyncRecord(
         recordId: record['record_id'] as String,
-        data: record['data'] as Map<String, dynamic>,
+        data: recordData,
         updatedAt: DateTime.parse(record['updated_at'] as String),
         version: record['version'] as int? ?? 1,
       );

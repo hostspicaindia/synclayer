@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'sync_backend_adapter.dart';
+import '../sync/sync_filter.dart';
 
 /// REST API implementation of SyncBackendAdapter
 class RestBackendAdapter implements SyncBackendAdapter {
@@ -44,14 +45,23 @@ class RestBackendAdapter implements SyncBackendAdapter {
     DateTime? since,
     int? limit,
     int? offset,
+    SyncFilter? filter,
   }) async {
+    // Build query parameters
+    final queryParams = <String, dynamic>{
+      if (since != null) 'since': since.toIso8601String(),
+      if (limit != null) 'limit': limit,
+      if (offset != null) 'offset': offset,
+    };
+
+    // Add filter parameters if provided
+    if (filter != null) {
+      queryParams.addAll(filter.toQueryParams());
+    }
+
     final response = await _dio.get(
       '/sync/$collection',
-      queryParameters: {
-        if (since != null) 'since': since.toIso8601String(),
-        if (limit != null) 'limit': limit,
-        if (offset != null) 'offset': offset,
-      },
+      queryParameters: queryParams,
     );
 
     final records = (response.data['records'] as List?) ?? [];

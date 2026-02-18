@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../network/sync_backend_adapter.dart';
+import '../sync/sync_filter.dart';
 
 /// Firebase Firestore adapter for SyncLayer
 ///
@@ -54,17 +55,28 @@ class FirebaseAdapter implements SyncBackendAdapter {
     DateTime? since,
     int? limit,
     int? offset,
+    SyncFilter? filter,
   }) async {
     Query query = firestore.collection(collection);
 
-    if (since != null) {
-      query =
-          query.where('updatedAt', isGreaterThan: Timestamp.fromDate(since));
+    // Use filter's since if provided, otherwise use since parameter
+    final effectiveSince = filter?.since ?? since;
+    if (effectiveSince != null) {
+      query = query.where('updatedAt',
+          isGreaterThan: Timestamp.fromDate(effectiveSince));
     }
 
-    // Apply pagination
-    if (limit != null) {
-      query = query.limit(limit);
+    // Apply filter where conditions
+    if (filter?.where != null) {
+      for (final entry in filter!.where!.entries) {
+        query = query.where('data.${entry.key}', isEqualTo: entry.value);
+      }
+    }
+
+    // Apply pagination - use filter's limit if provided
+    final effectiveLimit = filter?.limit ?? limit;
+    if (effectiveLimit != null) {
+      query = query.limit(effectiveLimit);
     }
 
     // Note: Firestore doesn't have native offset, so we skip documents
@@ -80,9 +92,16 @@ class FirebaseAdapter implements SyncBackendAdapter {
 
     return snapshot.docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
+      var recordData = data['data'] as Map<String, dynamic>;
+
+      // Apply field filtering if specified
+      if (filter != null) {
+        recordData = filter.applyFieldFilter(recordData);
+      }
+
       return SyncRecord(
         recordId: doc.id,
-        data: data['data'] as Map<String, dynamic>,
+        data: recordData,
         updatedAt: (data['updatedAt'] as Timestamp).toDate(),
         version: data['version'] as int? ?? 1,
       );

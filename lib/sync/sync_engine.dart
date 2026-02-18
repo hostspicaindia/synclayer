@@ -270,11 +270,19 @@ class SyncEngine {
       }
 
       for (final collection in collections) {
+        // Get sync filter for this collection
+        final filter = _config.syncFilters[collection];
+
         // Get last sync timestamp for this collection
         final lastSyncTime = await _localStorage.getLastSyncTime(collection);
 
-        _logger
-            .info('Pulling $collection since: ${lastSyncTime ?? "beginning"}');
+        // Use filter's since timestamp if provided, otherwise use last sync time
+        final effectiveSince = filter?.since ?? lastSyncTime;
+
+        _logger.info(
+          'Pulling $collection since: ${effectiveSince ?? "beginning"}'
+          '${filter != null ? " with filter: $filter" : ""}',
+        );
 
         // Pull changes from backend with pagination
         int offset = 0;
@@ -285,9 +293,10 @@ class SyncEngine {
           final remoteRecords = await _backendAdapter
               .pull(
             collection: collection,
-            since: lastSyncTime,
-            limit: pageSize,
+            since: effectiveSince,
+            limit: filter?.limit ?? pageSize,
             offset: offset,
+            filter: filter,
           )
               .timeout(
             _operationTimeout,
@@ -308,7 +317,27 @@ class SyncEngine {
 
           // Process each remote record and track latest timestamp
           for (final remoteRecord in remoteRecords) {
-            await _processRemoteRecord(collection, remoteRecord);
+            // Apply local filtering if filter is specified
+            if (filter != null) {
+              // Check if record matches filter criteria
+              if (!filter.matches(remoteRecord.data, remoteRecord.updatedAt)) {
+                _logger.debug(
+                    'Skipping record ${remoteRecord.recordId} - does not match filter');
+                continue;
+              }
+
+              // Apply field filtering
+              final filteredData = filter.applyFieldFilter(remoteRecord.data);
+              final filteredRecord = SyncRecord(
+                recordId: remoteRecord.recordId,
+                data: filteredData,
+                updatedAt: remoteRecord.updatedAt,
+                version: remoteRecord.version,
+              );
+              await _processRemoteRecord(collection, filteredRecord);
+            } else {
+              await _processRemoteRecord(collection, remoteRecord);
+            }
 
             // Track the latest updatedAt timestamp from pulled records
             if (latestTimestamp == null ||
@@ -318,7 +347,9 @@ class SyncEngine {
           }
 
           // If we received fewer records than page size, we're done
-          if (remoteRecords.length < pageSize) {
+          // Or if filter has a limit and we've reached it
+          if (remoteRecords.length < pageSize ||
+              (filter?.limit != null && totalRecords >= filter!.limit!)) {
             break;
           }
 

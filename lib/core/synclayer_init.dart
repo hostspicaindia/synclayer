@@ -1,5 +1,6 @@
 import '../local/local_storage.dart';
 import '../sync/sync_engine.dart';
+import '../sync/sync_filter.dart';
 import '../network/sync_backend_adapter.dart';
 import '../network/rest_backend_adapter.dart';
 import '../utils/connectivity_service.dart';
@@ -97,6 +98,34 @@ class SyncConfig {
   /// ```
   final List<String> collections;
 
+  /// Sync filters for selective synchronization per collection.
+  ///
+  /// Allows filtering which data gets synced based on conditions,
+  /// timestamps, and other criteria. Essential for:
+  /// - Privacy: Users don't want to download everyone's data
+  /// - Bandwidth: Mobile users have limited data plans
+  /// - Storage: Devices have limited space
+  /// - Security: Multi-tenant apps need user isolation
+  /// - Legal: GDPR requires data minimization
+  ///
+  /// Example:
+  /// ```dart
+  /// syncFilters: {
+  ///   'todos': SyncFilter(
+  ///     where: {'userId': currentUserId},
+  ///     since: DateTime.now().subtract(Duration(days: 30)),
+  ///   ),
+  ///   'notes': SyncFilter(
+  ///     where: {
+  ///       'userId': currentUserId,
+  ///       'archived': false,
+  ///     },
+  ///     limit: 100,
+  ///   ),
+  /// }
+  /// ```
+  final Map<String, SyncFilter> syncFilters;
+
   const SyncConfig({
     this.baseUrl,
     this.authToken,
@@ -106,6 +135,7 @@ class SyncConfig {
     this.customBackendAdapter,
     this.conflictStrategy = ConflictStrategy.lastWriteWins,
     this.collections = const [],
+    this.syncFilters = const {},
   }) : assert(
           baseUrl != null || customBackendAdapter != null,
           'Either baseUrl or customBackendAdapter must be provided',

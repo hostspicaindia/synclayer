@@ -56,6 +56,7 @@ await SyncLayer.collection('todos').save({
 📦 **Batch Operations** - Save/delete multiple documents efficiently  
 👀 **Reactive** - Watch collections for real-time UI updates  
 🔍 **Query & Filter** - Powerful querying with sorting and pagination (NEW in v1.1.0!)  
+🎯 **Selective Sync** - Filter what data gets synced (privacy, bandwidth, storage) (NEW in v1.2.0!)  
 📊 **Metrics & Telemetry** - Track sync performance and success rates  
 📝 **Structured Logging** - Production-ready logging framework  
 ⚡ **High Performance** - 50-90% faster with optimizations  
@@ -257,6 +258,138 @@ See [backend example](backend/) for a complete Node.js implementation.
 ---
 
 ## Advanced Features
+
+### Selective Sync (Sync Filters) (NEW in v1.2.0!)
+
+Control exactly what data gets synced to save bandwidth, storage, and ensure privacy.
+
+**Why use sync filters?**
+- 🔒 **Privacy:** Users don't want to download everyone's data
+- 📱 **Bandwidth:** Mobile users have limited data plans
+- 💾 **Storage:** Devices have limited space
+- 🔐 **Security:** Multi-tenant apps need user isolation
+- ⚖️ **Legal:** GDPR requires data minimization
+
+```dart
+// Multi-tenant: Only sync current user's data
+await SyncLayer.init(
+  SyncConfig(
+    baseUrl: 'https://api.example.com',
+    collections: ['todos', 'notes'],
+    syncFilters: {
+      'todos': SyncFilter(
+        where: {'userId': currentUserId},
+      ),
+    },
+  ),
+);
+
+// Time-based: Only sync recent data
+syncFilters: {
+  'todos': SyncFilter(
+    since: DateTime.now().subtract(Duration(days: 30)),
+  ),
+}
+
+// Bandwidth optimization: Exclude large fields
+syncFilters: {
+  'documents': SyncFilter(
+    excludeFields: ['fullContent', 'attachments', 'thumbnail'],
+  ),
+}
+
+// Or include only specific fields
+syncFilters: {
+  'documents': SyncFilter(
+    fields: ['id', 'title', 'summary', 'createdAt'],
+  ),
+}
+
+// Progressive sync: Limit initial sync size
+syncFilters: {
+  'todos': SyncFilter(
+    limit: 50, // Only sync first 50 items
+  ),
+}
+
+// Combined filters: All together
+syncFilters: {
+  'todos': SyncFilter(
+    where: {
+      'userId': currentUserId,
+      'archived': false,
+    },
+    since: DateTime.now().subtract(Duration(days: 30)),
+    limit: 100,
+    excludeFields: ['attachments', 'comments'],
+  ),
+}
+```
+
+**Real-world example: Todo app**
+```dart
+final currentUserId = 'user-123';
+
+await SyncLayer.init(
+  SyncConfig(
+    baseUrl: 'https://api.example.com',
+    collections: ['todos', 'projects', 'tags'],
+    syncFilters: {
+      // Todos: Only user's active todos from last 90 days
+      'todos': SyncFilter(
+        where: {
+          'userId': currentUserId,
+          'deleted': false,
+        },
+        since: DateTime.now().subtract(Duration(days: 90)),
+      ),
+      // Projects: Only user's projects
+      'projects': SyncFilter(
+        where: {'userId': currentUserId},
+      ),
+      // Tags: Only user's tags, exclude metadata
+      'tags': SyncFilter(
+        where: {'userId': currentUserId},
+        excludeFields: ['usage_stats', 'metadata'],
+      ),
+    },
+  ),
+);
+```
+
+**GDPR compliance example:**
+```dart
+syncFilters: {
+  'user_data': SyncFilter(
+    where: {
+      'userId': currentUserId,
+      'consentGiven': true, // Only sync if consent given
+    },
+    since: DateTime.now().subtract(Duration(days: 365)), // Data retention
+    excludeFields: ['ssn', 'creditCard', 'medicalRecords'], // Privacy
+  ),
+}
+```
+
+**Mobile bandwidth optimization:**
+```dart
+syncFilters: {
+  // Messages: Only recent, only essential fields
+  'messages': SyncFilter(
+    where: {'userId': currentUserId},
+    since: DateTime.now().subtract(Duration(days: 7)),
+    fields: ['id', 'text', 'senderId', 'timestamp'],
+    limit: 200,
+  ),
+  // Media: Only thumbnails, no full resolution
+  'media': SyncFilter(
+    where: {'userId': currentUserId},
+    fields: ['id', 'thumbnailUrl', 'type'],
+  ),
+}
+```
+
+See [sync filter example](example/sync_filter_example.dart) for more use cases.
 
 ### Query & Filtering (NEW in v1.1.0!)
 
@@ -493,6 +626,9 @@ MIT License - see [LICENSE](LICENSE) file.
 ## Support
 
 - 📖 [Complete API Reference](doc/API_REFERENCE.md)
+- 🎯 [Sync Filters Guide](doc/SYNC_FILTERS.md) - Control what data gets synced
+- 🚀 [Quick Start: Sync Filters](doc/QUICK_START_SYNC_FILTERS.md) - 5-minute tutorial
+- 🔄 [Migration Guide v1.2.0](doc/MIGRATION_GUIDE_v1.2.0.md) - Upgrade from v1.1.0
 - 🔌 [Platform Adapters Guide](doc/PLATFORM_ADAPTERS.md) - Firebase, Supabase, Appwrite
 - 📖 [Documentation](https://github.com/hostspicaindia/synclayer/wiki)
 - 🐛 [Issues](https://github.com/hostspicaindia/synclayer/issues)

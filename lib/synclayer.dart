@@ -38,6 +38,7 @@ export 'utils/logger.dart';
 export 'utils/metrics.dart';
 export 'query/query_builder.dart';
 export 'query/query_operators.dart';
+export 'sync/sync_filter.dart';
 // Note: Platform adapters (Firebase, Supabase, Appwrite) are available on GitHub
 // See: https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters
 

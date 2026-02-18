@@ -1,8 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synclayer/synclayer.dart';
-import 'package:synclayer/core/synclayer_init.dart';
-import 'package:synclayer/network/sync_backend_adapter.dart';
-import 'dart:convert';
 
 /// Mock backend adapter for testing
 class MockBackendAdapter implements SyncBackendAdapter {
@@ -38,14 +35,25 @@ class MockBackendAdapter implements SyncBackendAdapter {
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
+    SyncFilter? filter,
   }) async {
     final records = remoteData[collection] ?? [];
 
-    if (since == null) {
-      return records;
+    var filtered = since == null
+        ? records
+        : records.where((r) => r.updatedAt.isAfter(since)).toList();
+
+    if (offset != null && offset > 0) {
+      filtered = filtered.skip(offset).toList();
     }
 
-    return records.where((r) => r.updatedAt.isAfter(since)).toList();
+    if (limit != null && limit > 0) {
+      filtered = filtered.take(limit).toList();
+    }
+
+    return filtered;
   }
 
   @override

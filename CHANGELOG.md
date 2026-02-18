@@ -2,6 +2,78 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-02-18
+
+### 🎯 Selective Sync (Sync Filters)
+
+A critical feature for production apps! Control exactly what data gets synced to save bandwidth, storage, and ensure privacy.
+
+**New Features:**
+- ✅ **Sync Filters** - Filter what data gets synced per collection
+- ✅ **Where Conditions** - Filter by field values (multi-tenant support)
+- ✅ **Time-Based Filtering** - Only sync recent data (GDPR compliance)
+- ✅ **Field Filtering** - Include/exclude specific fields (bandwidth optimization)
+- ✅ **Progressive Sync** - Limit initial sync size
+- ✅ **Backend Integration** - Works with all adapters (REST, Firebase, Supabase, Appwrite)
+
+**Why Sync Filters?**
+- 🔒 **Privacy:** Users don't want to download everyone's data
+- 📱 **Bandwidth:** Mobile users have limited data plans (70-90% reduction)
+- 💾 **Storage:** Devices have limited space
+- 🔐 **Security:** Multi-tenant apps need user isolation
+- ⚖️ **Legal:** GDPR requires data minimization
+
+**Example Usage:**
+```dart
+await SyncLayer.init(
+  SyncConfig(
+    baseUrl: 'https://api.example.com',
+    collections: ['todos', 'notes'],
+    syncFilters: {
+      // Multi-tenant: Only sync current user's data
+      'todos': SyncFilter(
+        where: {'userId': currentUserId},
+      ),
+      // Time-based: Only recent data
+      'notes': SyncFilter(
+        since: DateTime.now().subtract(Duration(days: 30)),
+      ),
+      // Bandwidth: Exclude large fields
+      'documents': SyncFilter(
+        excludeFields: ['fullContent', 'attachments'],
+      ),
+      // Combined: All together
+      'messages': SyncFilter(
+        where: {'userId': currentUserId},
+        since: DateTime.now().subtract(Duration(days: 7)),
+        fields: ['id', 'text', 'timestamp'],
+        limit: 200,
+      ),
+    },
+  ),
+);
+```
+
+**API Additions:**
+- `SyncFilter` class - Configure sync filtering
+- `SyncConfig.syncFilters` - Map of filters per collection
+- `SyncBackendAdapter.pull()` - Updated to support filters
+- All adapters updated (REST, Firebase, Supabase, Appwrite)
+
+**Documentation:**
+- [Sync Filters Guide](doc/SYNC_FILTERS.md) - Complete guide with examples
+- [Sync Filter Example](example/sync_filter_example.dart) - 8 real-world examples
+- Updated README with sync filter documentation
+
+**Breaking Changes:**
+- None - Sync filters are optional and backward compatible
+
+**Migration:**
+- No migration needed - existing code works without changes
+- Add `syncFilters` to `SyncConfig` to enable filtering
+
+---
+
 ## [1.1.0] - 2026-02-17
 
 ### 🔍 Query & Filtering API

@@ -1,3 +1,5 @@
+import '../sync/sync_filter.dart';
+
 /// Abstract interface for backend sync adapters
 /// This allows SyncLayer to work with different backends (REST, Firebase, Supabase, GraphQL)
 abstract class SyncBackendAdapter {
@@ -9,12 +11,20 @@ abstract class SyncBackendAdapter {
     required DateTime timestamp,
   });
 
-  /// Pull data from backend with optional pagination
+  /// Pull data from backend with optional pagination and filtering
+  ///
+  /// Parameters:
+  /// - [collection]: Collection name to pull from
+  /// - [since]: Only pull records modified after this timestamp
+  /// - [limit]: Maximum number of records to pull
+  /// - [offset]: Number of records to skip (for pagination)
+  /// - [filter]: Optional sync filter for selective synchronization
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
     int? limit,
     int? offset,
+    SyncFilter? filter,
   });
 
   /// Delete data on backend

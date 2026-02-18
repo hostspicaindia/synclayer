@@ -1,5 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import '../network/sync_backend_adapter.dart';
+import '../sync/sync_filter.dart';
 
 /// Appwrite adapter for SyncLayer
 ///
@@ -80,16 +81,29 @@ class AppwriteAdapter implements SyncBackendAdapter {
     DateTime? since,
     int? limit,
     int? offset,
+    SyncFilter? filter,
   }) async {
     List<String> queries = [];
 
-    if (since != null) {
-      queries.add(Query.greaterThan('updated_at', since.toIso8601String()));
+    // Use filter's since if provided, otherwise use since parameter
+    final effectiveSince = filter?.since ?? since;
+    if (effectiveSince != null) {
+      queries.add(
+          Query.greaterThan('updated_at', effectiveSince.toIso8601String()));
     }
 
-    // Apply pagination
-    if (limit != null) {
-      queries.add(Query.limit(limit));
+    // Apply filter where conditions
+    if (filter?.where != null) {
+      for (final entry in filter!.where!.entries) {
+        // Appwrite supports nested attribute queries
+        queries.add(Query.equal('data.${entry.key}', entry.value));
+      }
+    }
+
+    // Apply pagination - use filter's limit if provided
+    final effectiveLimit = filter?.limit ?? limit;
+    if (effectiveLimit != null) {
+      queries.add(Query.limit(effectiveLimit));
     }
 
     if (offset != null) {
@@ -103,9 +117,16 @@ class AppwriteAdapter implements SyncBackendAdapter {
     );
 
     return response.documents.map((doc) {
+      var recordData = doc.data['data'] as Map<String, dynamic>;
+
+      // Apply field filtering if specified
+      if (filter != null) {
+        recordData = filter.applyFieldFilter(recordData);
+      }
+
       return SyncRecord(
         recordId: doc.$id,
-        data: doc.data['data'] as Map<String, dynamic>,
+        data: recordData,
         updatedAt: DateTime.parse(doc.data['updated_at'] as String),
         version: doc.data['version'] as int? ?? 1,
       );
