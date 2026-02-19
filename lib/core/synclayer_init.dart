@@ -5,6 +5,9 @@ import '../network/sync_backend_adapter.dart';
 import '../network/rest_backend_adapter.dart';
 import '../utils/connectivity_service.dart';
 import '../conflict/conflict_resolver.dart';
+import '../conflict/custom_conflict_resolver.dart';
+import '../security/encryption_config.dart';
+import '../security/encryption_service.dart';
 
 /// Configuration for SyncLayer initialization.
 ///
@@ -82,7 +85,38 @@ class SyncConfig {
   /// - lastWriteWins: Most recent change wins (based on timestamp)
   /// - serverWins: Server version always wins
   /// - clientWins: Client version always wins
+  /// - custom: Use customConflictResolver function
   final ConflictStrategy conflictStrategy;
+
+  /// Custom conflict resolver function for advanced conflict resolution.
+  ///
+  /// Required when [conflictStrategy] is [ConflictStrategy.custom].
+  ///
+  /// Allows implementing custom logic for:
+  /// - Merging arrays instead of replacing
+  /// - Summing quantities in inventory apps
+  /// - Field-level merging for collaborative editing
+  /// - Deep merging of nested objects
+  ///
+  /// Example:
+  /// ```dart
+  /// customConflictResolver: (local, remote, localTime, remoteTime) {
+  ///   // Merge tags array
+  ///   return {
+  ///     ...remote,
+  ///     'tags': [
+  ///       ...List<String>.from(local['tags'] ?? []),
+  ///       ...List<String>.from(remote['tags'] ?? []),
+  ///     ].toSet().toList(),
+  ///   };
+  /// }
+  /// ```
+  ///
+  /// Or use pre-built resolvers:
+  /// ```dart
+  /// customConflictResolver: ConflictResolvers.mergeArrays(['tags', 'likes'])
+  /// ```
+  final CustomConflictResolverCallback? customConflictResolver;
 
   /// List of collection names to sync with the backend.
   ///
@@ -126,6 +160,32 @@ class SyncConfig {
   /// ```
   final Map<String, SyncFilter> syncFilters;
 
+  /// Encryption configuration for data at rest.
+  ///
+  /// Encrypts data before storing locally and decrypts when reading.
+  /// Essential for:
+  /// - Enterprise: Healthcare, finance, legal apps MUST have encryption
+  /// - Compliance: HIPAA, GDPR, SOC2 require encryption at rest
+  /// - Trust: Users expect their data to be encrypted
+  /// - Security: Protects data if device is compromised
+  ///
+  /// Example:
+  /// ```dart
+  /// final encryptionKey = await generateSecureKey();
+  ///
+  /// encryption: EncryptionConfig(
+  ///   enabled: true,
+  ///   key: encryptionKey,
+  ///   algorithm: EncryptionAlgorithm.aes256GCM,
+  /// )
+  /// ```
+  ///
+  /// IMPORTANT: Store encryption key securely using:
+  /// - flutter_secure_storage
+  /// - Platform keychain (iOS Keychain, Android Keystore)
+  /// - Never hardcode or commit to version control
+  final EncryptionConfig encryption;
+
   const SyncConfig({
     this.baseUrl,
     this.authToken,
@@ -134,11 +194,18 @@ class SyncConfig {
     this.enableAutoSync = true,
     this.customBackendAdapter,
     this.conflictStrategy = ConflictStrategy.lastWriteWins,
+    this.customConflictResolver,
     this.collections = const [],
     this.syncFilters = const {},
-  }) : assert(
+    this.encryption = const EncryptionConfig.disabled(),
+  })  : assert(
           baseUrl != null || customBackendAdapter != null,
           'Either baseUrl or customBackendAdapter must be provided',
+        ),
+        assert(
+          conflictStrategy != ConflictStrategy.custom ||
+              customConflictResolver != null,
+          'customConflictResolver is required when conflictStrategy is custom',
         );
 }
 
@@ -153,6 +220,7 @@ class SyncLayerCore {
   late final ConflictResolver _conflictResolver;
   late final SyncEngine _syncEngine;
   late final SyncConfig _config;
+  late final EncryptionService? _encryptionService;
 
   SyncLayerCore._();
 
@@ -179,8 +247,13 @@ class SyncLayerCore {
   }
 
   Future<void> _initialize() async {
+    // Initialize encryption service
+    _encryptionService = _config.encryption.enabled
+        ? EncryptionService(_config.encryption)
+        : null;
+
     // Initialize local storage (Isar)
-    _localStorage = LocalStorage();
+    _localStorage = LocalStorage(encryptionService: _encryptionService);
     await _localStorage.init();
 
     // Initialize backend adapter (use custom or default REST)
@@ -195,7 +268,10 @@ class SyncLayerCore {
     await _connectivityService.init();
 
     // Initialize conflict resolver
-    _conflictResolver = ConflictResolver(strategy: _config.conflictStrategy);
+    _conflictResolver = ConflictResolver(
+      strategy: _config.conflictStrategy,
+      customResolver: _config.customConflictResolver,
+    );
 
     // Initialize sync engine
     _syncEngine = SyncEngine(
@@ -217,6 +293,7 @@ class SyncLayerCore {
   ConnectivityService get connectivityService => _connectivityService;
   ConflictResolver get conflictResolver => _conflictResolver;
   SyncConfig get config => _config;
+  EncryptionService? get encryptionService => _encryptionService;
 
   /// Dispose resources
   static Future<void> dispose() async {

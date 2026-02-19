@@ -51,12 +51,15 @@ await SyncLayer.collection('todos').save({
 🚀 **Local-First** - Writes happen instantly to local storage  
 🔄 **Auto-Sync** - Background sync every 5 minutes (configurable)  
 📡 **Offline Queue** - Operations sync automatically when online  
-⚔️ **Conflict Resolution** - Last-write-wins, server-wins, or client-wins  
+⚔️ **Conflict Resolution** - Last-write-wins, server-wins, client-wins, or custom resolvers  
+🎨 **Custom Conflict Resolvers** - Merge arrays, sum numbers, field-level merging (NEW in v1.3.0!)  
+⚡ **Delta Sync** - Only sync changed fields, save 70-98% bandwidth (NEW in v1.3.0!)  
+🔐 **Encryption at Rest** - AES-256-GCM, CBC, ChaCha20 for HIPAA/PCI compliance (NEW in v1.3.0!)  
 🔌 **Backend Agnostic** - Works with REST, Firebase, Supabase, or custom backends  
 📦 **Batch Operations** - Save/delete multiple documents efficiently  
 👀 **Reactive** - Watch collections for real-time UI updates  
-🔍 **Query & Filter** - Powerful querying with sorting and pagination (NEW in v1.1.0!)  
-🎯 **Selective Sync** - Filter what data gets synced (privacy, bandwidth, storage) (NEW in v1.2.0!)  
+🔍 **Query & Filter** - Powerful querying with sorting and pagination  
+🎯 **Selective Sync** - Filter what data gets synced (privacy, bandwidth, storage)  
 📊 **Metrics & Telemetry** - Track sync performance and success rates  
 📝 **Structured Logging** - Production-ready logging framework  
 ⚡ **High Performance** - 50-90% faster with optimizations  
@@ -89,7 +92,7 @@ You must copy them from the [GitHub repository](https://github.com/hostspicaindi
 
 ```yaml
 dependencies:
-  synclayer: ^1.1.0
+  synclayer: ^1.3.0
 ```
 
 ### 2. Initialize
@@ -471,6 +474,144 @@ final count = await SyncLayer.collection('todos')
 
 See [query example](example/query_example.dart) for more details.
 
+### Custom Conflict Resolvers (NEW in v1.3.0!)
+
+Go beyond the built-in strategies with custom conflict resolution logic:
+
+```dart
+await SyncLayer.init(
+  SyncConfig(
+    baseUrl: 'https://api.example.com',
+    conflictStrategy: ConflictStrategy.custom,
+    customConflictResolver: (local, remote, localTime, remoteTime) {
+      // Social app: Merge likes and comments
+      return {
+        ...remote,
+        'likes': [...local['likes'], ...remote['likes']].toSet().toList(),
+        'comments': [...local['comments'], ...remote['comments']],
+      };
+    },
+  ),
+);
+```
+
+**Pre-built resolvers for common scenarios:**
+
+```dart
+// Merge arrays (social apps)
+customConflictResolver: ConflictResolvers.mergeArrays(['tags', 'likes'])
+
+// Sum numbers (inventory apps)
+customConflictResolver: ConflictResolvers.sumNumbers(['quantity', 'views'])
+
+// Field-level last-write-wins (collaborative editing)
+customConflictResolver: ConflictResolvers.fieldLevelLastWriteWins()
+
+// Deep merge (nested objects)
+customConflictResolver: ConflictResolvers.deepMerge()
+
+// Max value (analytics)
+customConflictResolver: ConflictResolvers.maxValue(['version', 'score'])
+```
+
+See [custom conflict resolver example](example/custom_conflict_resolver_example.dart) for more use cases.
+
+### Delta Sync - Partial Updates (NEW in v1.3.0!)
+
+Save 70-98% bandwidth by only syncing changed fields:
+
+```dart
+// Instead of sending entire document (wasteful):
+await collection.save({
+  'id': '123',
+  'title': 'My Document',
+  'content': '... 50KB of content ...',
+  'done': true,  // Only this changed!
+}, id: '123');
+
+// Use delta sync - only send changed field (efficient):
+await collection.update('123', {'done': true});
+// Saves 98% bandwidth!
+```
+
+**Real-world examples:**
+
+```dart
+// Toggle todo completion
+await collection.update(todoId, {'done': true});
+
+// Increment view count
+final doc = await collection.get(docId);
+await collection.update(docId, {'views': (doc!['views'] ?? 0) + 1});
+
+// Update user status
+await collection.update(userId, {
+  'status': 'online',
+  'lastSeen': DateTime.now().toIso8601String(),
+});
+```
+
+**Benefits:**
+- 70-98% bandwidth reduction
+- Faster sync performance
+- Lower server costs
+- Better battery life
+- Fewer conflicts (only specific fields change)
+
+See [delta sync example](example/delta_sync_example.dart) for more details.
+
+### Encryption at Rest (NEW in v1.3.0!)
+
+Protect sensitive data with industry-standard encryption:
+
+```dart
+import 'dart:math';
+import 'dart:typed_data';
+
+// Generate secure encryption key (32 bytes for AES-256)
+Uint8List generateSecureKey() {
+  final random = Random.secure();
+  return Uint8List.fromList(
+    List.generate(32, (_) => random.nextInt(256)),
+  );
+}
+
+await SyncLayer.init(
+  SyncConfig(
+    baseUrl: 'https://api.example.com',
+    collections: ['patients', 'transactions'],
+    encryption: EncryptionConfig(
+      enabled: true,
+      key: encryptionKey,
+      algorithm: EncryptionAlgorithm.aes256GCM, // Recommended
+      compressBeforeEncryption: true, // Reduce storage
+    ),
+  ),
+);
+
+// Data is automatically encrypted before storage
+await SyncLayer.collection('patients').save({
+  'name': 'John Doe',
+  'ssn': '123-45-6789', // Encrypted at rest
+  'diagnosis': 'Hypertension',
+});
+```
+
+**Supported algorithms:**
+- `aes256GCM` - Best balance (recommended for most apps)
+- `aes256CBC` - Legacy compatibility
+- `chacha20Poly1305` - Mobile-optimized
+
+**Use cases:**
+- Healthcare apps (HIPAA compliance)
+- Finance apps (PCI DSS compliance)
+- Legal apps (attorney-client privilege)
+- Enterprise apps (SOC2, ISO 27001)
+
+**IMPORTANT:** Store encryption keys securely using `flutter_secure_storage` or platform keychain. Never hardcode keys!
+
+See [encryption example](example/encryption_example.dart) for complete guide.
+
 ### Batch Operations
 
 ```dart
@@ -589,8 +730,9 @@ See [CHANGELOG](CHANGELOG.md) for details.
 - [x] Pagination for large datasets
 - [x] Batch operations
 - [x] Data validation
-- [ ] Custom conflict resolvers
-- [ ] Encryption support
+- [x] Custom conflict resolvers ⭐ NEW in v1.3.0
+- [x] Delta sync (partial updates) ⭐ NEW in v1.3.0
+- [x] Encryption at rest ⭐ NEW in v1.3.0
 - [ ] WebSocket support for real-time sync
 - [ ] Migration tools
 

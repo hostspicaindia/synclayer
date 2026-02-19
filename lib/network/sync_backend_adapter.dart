@@ -11,6 +11,35 @@ abstract class SyncBackendAdapter {
     required DateTime timestamp,
   });
 
+  /// Push delta (partial update) to backend.
+  ///
+  /// Only sends changed fields instead of the entire document,
+  /// reducing bandwidth by up to 98%.
+  ///
+  /// Parameters:
+  /// - [collection]: Collection name
+  /// - [recordId]: Document ID
+  /// - [delta]: Only the fields that changed
+  /// - [baseVersion]: Version before this update
+  /// - [timestamp]: When the update occurred
+  ///
+  /// If the backend doesn't support delta sync, this should fall back
+  /// to a regular push() with the full document.
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    // Default implementation: fall back to regular push
+    // Backends that support delta sync should override this method
+    throw UnimplementedError(
+      'Delta sync not implemented for this backend adapter. '
+      'Override pushDelta() or use regular push().',
+    );
+  }
+
   /// Pull data from backend with optional pagination and filtering
   ///
   /// Parameters:

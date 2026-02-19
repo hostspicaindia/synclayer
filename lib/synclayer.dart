@@ -34,11 +34,15 @@ export 'core/synclayer_init.dart';
 export 'core/sync_event.dart';
 export 'network/sync_backend_adapter.dart';
 export 'conflict/conflict_resolver.dart';
+export 'conflict/custom_conflict_resolver.dart';
 export 'utils/logger.dart';
 export 'utils/metrics.dart';
 export 'query/query_builder.dart';
 export 'query/query_operators.dart';
 export 'sync/sync_filter.dart';
+export 'sync/delta_sync.dart';
+export 'security/encryption_config.dart';
+export 'security/encryption_service.dart';
 // Note: Platform adapters (Firebase, Supabase, Appwrite) are available on GitHub
 // See: https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters
 
@@ -416,6 +420,87 @@ class CollectionReference {
     await core.syncEngine.queueManager.queueDelete(
       collectionName: _name,
       recordId: id,
+    );
+  }
+
+  /// Updates specific fields of a document (delta sync).
+  ///
+  /// Only sends the changed fields to the backend, reducing bandwidth
+  /// usage by up to 98% compared to sending the entire document.
+  ///
+  /// Benefits:
+  /// - Bandwidth: Sending 1 field vs 50 fields = 98% savings
+  /// - Conflicts: Fewer conflicts when only specific fields change
+  /// - Performance: Faster sync, less data transfer
+  /// - Battery: Less network usage = better battery life
+  /// - Cost: Lower server bandwidth costs
+  ///
+  /// Parameters:
+  /// - [id]: The document ID to update.
+  /// - [updates]: Map of fields to update. Only these fields will be synced.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Instead of sending entire document:
+  /// await collection.save({
+  ///   'id': '123',
+  ///   'title': 'My Document',
+  ///   'content': '... 50KB of content ...',
+  ///   'done': true,  // Only this changed
+  /// }, id: '123');
+  ///
+  /// // Use delta sync - only send changed field:
+  /// await collection.update('123', {'done': true});
+  /// // Saves 98% bandwidth!
+  /// ```
+  ///
+  /// Real-world examples:
+  /// ```dart
+  /// // Toggle todo completion
+  /// await collection.update(todoId, {'done': true});
+  ///
+  /// // Increment view count
+  /// final doc = await collection.get(docId);
+  /// await collection.update(docId, {'views': (doc!['views'] ?? 0) + 1});
+  ///
+  /// // Update multiple fields
+  /// await collection.update(userId, {
+  ///   'lastSeen': DateTime.now().toIso8601String(),
+  ///   'status': 'online',
+  /// });
+  /// ```
+  Future<void> update(String id, Map<String, dynamic> updates) async {
+    final core = SyncLayerCore.instance;
+
+    // Get current document
+    final existing = await core.localStorage.getData(
+      collectionName: _name,
+      recordId: id,
+    );
+
+    if (existing == null) {
+      throw StateError('Document $id not found in collection $_name');
+    }
+
+    // Parse existing data
+    final currentData = jsonDecode(existing.data) as Map<String, dynamic>;
+
+    // Merge updates into current data
+    final updatedData = {...currentData, ...updates};
+
+    // Save merged data locally
+    await core.localStorage.saveData(
+      collectionName: _name,
+      recordId: id,
+      data: jsonEncode(updatedData),
+    );
+
+    // Queue delta update (only changed fields)
+    await core.syncEngine.queueManager.queueDeltaUpdate(
+      collectionName: _name,
+      recordId: id,
+      delta: updates,
+      baseVersion: existing.version,
     );
   }
 

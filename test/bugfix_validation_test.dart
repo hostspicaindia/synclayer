@@ -523,6 +523,24 @@ class MockBackendAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    pushedData.add({
+      'collection': collection,
+      'recordId': recordId,
+      'delta': delta,
+      'baseVersion': baseVersion,
+      'timestamp': timestamp,
+      'isDelta': true,
+    });
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,

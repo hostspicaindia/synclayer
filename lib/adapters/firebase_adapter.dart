@@ -50,6 +50,32 @@ class FirebaseAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    // Firebase Firestore supports partial updates natively
+    // We can use merge: true to only update changed fields
+    final updateData = <String, dynamic>{};
+
+    // Prefix each delta field with 'data.' for nested update
+    for (final entry in delta.entries) {
+      updateData['data.${entry.key}'] = entry.value;
+    }
+
+    updateData['updatedAt'] = Timestamp.fromDate(timestamp);
+    updateData['version'] = FieldValue.increment(1);
+
+    await firestore.collection(collection).doc(recordId).set(
+          updateData,
+          SetOptions(merge: true),
+        );
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,

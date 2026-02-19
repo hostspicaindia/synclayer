@@ -130,6 +130,69 @@ class QueueManager {
     ));
   }
 
+  /// Add delta update operation to queue (partial update).
+  ///
+  /// Delta updates only sync changed fields, reducing bandwidth by up to 98%.
+  ///
+  /// Parameters:
+  /// - [collectionName]: The collection name
+  /// - [recordId]: The document ID
+  /// - [delta]: Only the fields that changed
+  /// - [baseVersion]: The version before this update
+  ///
+  /// Example:
+  /// ```dart
+  /// await queueDeltaUpdate(
+  ///   collectionName: 'todos',
+  ///   recordId: '123',
+  ///   delta: {'done': true},  // Only this field changed
+  ///   baseVersion: 5,
+  /// );
+  /// ```
+  Future<void> queueDeltaUpdate({
+    required String collectionName,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+  }) async {
+    if (!_isJsonSerializable(delta)) {
+      throw ArgumentError(
+        'Delta is not JSON-serializable. Ensure all values are primitive types, '
+        'Lists, or Maps containing JSON-serializable values.',
+      );
+    }
+
+    // Store delta with metadata
+    final payload = {
+      'delta': delta,
+      'baseVersion': baseVersion,
+      'isDelta': true,
+    };
+
+    final operation = SyncOperation()
+      ..collectionName = collectionName
+      ..operationType = 'delta_update'
+      ..payload = jsonEncode(payload)
+      ..timestamp = DateTime.now()
+      ..status = 'pending'
+      ..recordId = recordId;
+
+    await _localStorage.addToSyncQueue(operation);
+
+    _metrics.recordOperationQueued('delta_update');
+
+    // Emit event
+    _onEvent?.call(SyncEvent(
+      type: SyncEventType.operationQueued,
+      collectionName: collectionName,
+      recordId: recordId,
+      metadata: {
+        'operationType': 'delta_update',
+        'fieldsChanged': delta.keys.length,
+      },
+    ));
+  }
+
   /// Add delete operation to queue
   Future<void> queueDelete({
     required String collectionName,

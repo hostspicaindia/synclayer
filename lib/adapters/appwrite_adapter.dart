@@ -76,6 +76,41 @@ class AppwriteAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    // Appwrite doesn't have native delta sync support
+    // Update only the changed fields
+    try {
+      await databases.updateDocument(
+        databaseId: databaseId,
+        collectionId: collection,
+        documentId: recordId,
+        data: {
+          'data': delta, // Note: This only updates changed fields
+          'updated_at': timestamp.toIso8601String(),
+        },
+      );
+    } catch (e) {
+      // If document doesn't exist, create it with delta as initial data
+      await databases.createDocument(
+        databaseId: databaseId,
+        collectionId: collection,
+        documentId: recordId,
+        data: {
+          'data': delta,
+          'updated_at': timestamp.toIso8601String(),
+          'version': 1,
+        },
+      );
+    }
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,

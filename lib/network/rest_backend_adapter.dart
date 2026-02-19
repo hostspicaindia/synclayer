@@ -40,6 +40,24 @@ class RestBackendAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    await _dio.patch(
+      '/sync/$collection/$recordId',
+      data: {
+        'delta': delta,
+        'baseVersion': baseVersion,
+        'timestamp': timestamp.toIso8601String(),
+      },
+    );
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,

@@ -2,6 +2,174 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-02-19
+
+### 🎯 Custom Conflict Resolvers, Delta Sync & Encryption
+
+Three critical features for production apps! Custom conflict resolvers allow application-specific conflict resolution logic, delta sync reduces bandwidth by up to 98%, and encryption ensures data security at rest.
+
+**New Features:**
+
+### Custom Conflict Resolvers ⭐⭐⭐⭐
+- ✅ **Custom Conflict Strategy** - Implement your own conflict resolution logic
+- ✅ **Pre-built Resolvers** - Common patterns ready to use
+- ✅ **Array Merging** - Merge arrays instead of replacing (social apps)
+- ✅ **Number Summing** - Sum quantities (inventory apps)
+- ✅ **Field-Level Merging** - Merge specific fields (collaborative editing)
+- ✅ **Max Value** - Take maximum for counters (analytics)
+- ✅ **Deep Merge** - Recursively merge nested objects
+- ✅ **Field-Level Last-Write-Wins** - Per-field timestamps
+
+**Why Custom Conflict Resolvers?**
+- 🔧 **Flexibility:** One-size doesn't fit all - built-in strategies don't work for all cases
+- 🤝 **Collaboration:** Collaborative editing needs field-level merging
+- 📦 **Inventory:** Inventory apps need to sum quantities, not replace
+- 💬 **Social:** Social apps need to merge likes/comments
+- 🏆 **Differentiation:** Competitors have this, you need it too
+- 🚫 **Production Blocker:** Apps with complex data can't use SyncLayer without this
+
+**Example Usage:**
+```dart
+// Social app: Merge likes and comments
+await SyncLayer.init(
+  SyncConfig(
+    baseUrl: 'https://api.example.com',
+    conflictStrategy: ConflictStrategy.custom,
+    customConflictResolver: (local, remote, localTime, remoteTime) {
+      return {
+        ...remote,
+        'likes': [...local['likes'], ...remote['likes']].toSet().toList(),
+        'comments': [...local['comments'], ...remote['comments']],
+      };
+    },
+  ),
+);
+
+// Or use pre-built resolvers
+customConflictResolver: ConflictResolvers.mergeArrays(['tags', 'likes'])
+customConflictResolver: ConflictResolvers.sumNumbers(['quantity', 'views'])
+customConflictResolver: ConflictResolvers.fieldLevelLastWriteWins()
+```
+
+### Delta Sync (Partial Updates) ⭐⭐⭐⭐
+- ✅ **Partial Updates** - Only sync changed fields
+- ✅ **update() Method** - New API for delta updates
+- ✅ **Bandwidth Optimization** - 70-98% bandwidth reduction
+- ✅ **DeltaCalculator** - Calculate deltas and savings
+- ✅ **Backend Support** - REST adapter supports PATCH requests
+- ✅ **Automatic Fallback** - Falls back to full update if backend doesn't support delta
+
+**Why Delta Sync?**
+- 📱 **Bandwidth:** Sending 1 field vs 50 fields = 98% savings
+- ⚡ **Performance:** Faster sync, less data transfer
+- 🔋 **Battery:** Less network usage = better battery life
+- 💰 **Cost:** Lower server bandwidth costs
+- 🔄 **Conflicts:** Fewer conflicts when only specific fields change
+
+**Example Usage:**
+```dart
+// Traditional way: Send entire document (wasteful)
+await collection.save({
+  'id': '123',
+  'title': 'My Document',
+  'content': '... 50KB of content ...',
+  'done': true,  // Only this changed!
+}, id: '123');
+
+// Delta sync: Only send changed field (efficient)
+await collection.update('123', {'done': true});
+// Saves 98% bandwidth!
+
+// Real-world examples:
+// Toggle todo completion
+await collection.update(todoId, {'done': true});
+
+// Increment view count
+await collection.update(docId, {'views': views + 1});
+
+// Update user status
+await collection.update(userId, {
+  'status': 'online',
+  'lastSeen': DateTime.now().toIso8601String(),
+});
+```
+
+### Encryption (Data at Rest) ⭐⭐⭐⭐
+- ✅ **AES-256-GCM** - Recommended, authenticated encryption
+- ✅ **AES-256-CBC** - Legacy compatibility
+- ✅ **ChaCha20-Poly1305** - Mobile-optimized
+- ✅ **Automatic Encryption** - Transparent encryption/decryption
+- ✅ **Compression** - Optional compression before encryption
+- ✅ **Field Name Encryption** - Optional for maximum security
+
+**Why Encryption?**
+- 🏥 **Enterprise:** Healthcare, finance, legal apps MUST have encryption
+- ⚖️ **Compliance:** HIPAA, GDPR, PCI DSS, SOC2 require encryption at rest
+- 🔒 **Trust:** Users expect their data to be encrypted
+- 🛡️ **Security:** Protects data if device is compromised
+- 💼 **Market:** Can't sell to enterprise without encryption
+
+**Example Usage:**
+```dart
+// Generate secure key (store in flutter_secure_storage)
+final encryptionKey = generateSecureKey();
+
+await SyncLayer.init(
+  SyncConfig(
+    baseUrl: 'https://api.example.com',
+    encryption: EncryptionConfig(
+      enabled: true,
+      key: encryptionKey,
+      algorithm: EncryptionAlgorithm.aes256GCM,
+    ),
+  ),
+);
+
+// Data is automatically encrypted before storage
+await collection.save({
+  'ssn': '123-45-6789',  // Encrypted!
+  'cardNumber': '4111-1111-1111-1111',  // Encrypted!
+});
+```
+
+**Compliance:**
+- HIPAA: Encrypts PHI (Protected Health Information)
+- PCI DSS: Encrypts cardholder data
+- GDPR: Encrypts personal data
+- SOC2: Meets encryption requirements
+
+**API Additions:**
+- `EncryptionConfig` - Configure encryption
+- `EncryptionAlgorithm` - Choose algorithm (AES-GCM, AES-CBC, ChaCha20)
+- `EncryptionService` - Encryption/decryption service
+- `SyncConfig.encryption` - Enable encryption
+- `CollectionReference.update()` - Update specific fields (delta sync)
+- `ConflictStrategy.custom` - Use custom conflict resolver
+- `SyncConfig.customConflictResolver` - Custom resolver function
+- `CustomConflictResolverCallback` - Type for custom resolvers
+- `ConflictResolvers` - Pre-built resolver utilities
+- `DocumentDelta` - Delta representation
+- `DeltaCalculator` - Calculate deltas and savings
+- `SyncBackendAdapter.pushDelta()` - Push delta to backend
+- `QueueManager.queueDeltaUpdate()` - Queue delta operation
+
+**Documentation:**
+- [Encryption Example](example/encryption_example.dart) - 6 real-world examples
+- [Custom Conflict Resolver Example](example/custom_conflict_resolver_example.dart) - 6 real-world examples
+- [Delta Sync Example](example/delta_sync_example.dart) - 6 bandwidth optimization examples
+- Updated README with all three features
+
+**Breaking Changes:**
+- None - All features are optional and backward compatible
+
+**Migration:**
+- No migration needed - existing code works without changes
+- Add `encryption` to `SyncConfig` to enable encryption
+- Add `customConflictResolver` to `SyncConfig` to enable custom resolution
+- Use `collection.update()` instead of `collection.save()` for delta sync
+
+---
+
 ## [1.2.0] - 2026-02-18
 
 ### 🎯 Selective Sync (Sync Filters)

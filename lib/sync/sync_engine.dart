@@ -234,6 +234,40 @@ class SyncEngine {
         );
         break;
 
+      case 'delta_update':
+        // Extract delta from payload
+        final isDelta = data['isDelta'] == true;
+        if (isDelta) {
+          final delta = data['delta'] as Map<String, dynamic>;
+          final baseVersion = data['baseVersion'] as int;
+
+          _logger.debug(
+            'Pushing delta to backend: ${operation.recordId} '
+            '(${delta.keys.length} fields changed)',
+          );
+
+          // Push delta update to backend
+          await _backendAdapter.pushDelta(
+            collection: operation.collectionName,
+            recordId: operation.recordId!,
+            delta: delta,
+            baseVersion: baseVersion,
+            timestamp: operation.timestamp,
+          );
+        } else {
+          // Fallback to regular update if backend doesn't support delta
+          _logger.warning(
+            'Backend does not support delta sync, falling back to full update',
+          );
+          await _backendAdapter.push(
+            collection: operation.collectionName,
+            recordId: operation.recordId!,
+            data: data,
+            timestamp: operation.timestamp,
+          );
+        }
+        break;
+
       case 'delete':
         await _backendAdapter.delete(
           collection: operation.collectionName,

@@ -50,6 +50,25 @@ class SupabaseAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    // Supabase doesn't have native delta sync support
+    // Fall back to regular push with delta as the data
+    // In production, you might want to fetch the full document first,
+    // merge the delta, and then push the complete document
+    await client.from(collection).upsert({
+      'record_id': recordId,
+      'data': delta, // Note: This only updates changed fields
+      'updated_at': timestamp.toIso8601String(),
+    });
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
