@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2026-02-19
+
+### Fixed
+- 📝 **README Version Badge** - Updated version badge from v1.0.0 to v1.3.1 for accurate pub.dev display
+
+---
+
 ## [1.3.1] - 2026-02-19
 
 ### Fixed
