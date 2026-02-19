@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-02-19
+
+### Fixed
+- 📝 **Package Description** - Shortened description to meet pub.dev requirements (60-180 characters)
+- 🌐 **Website SEO** - Comprehensive SEO optimization with structured data, enhanced meta tags, and sitemap
+- 📊 **Documentation** - Added SEO guides and action checklists
+
+### Changed
+- 📄 **Description** - Updated to concise format while maintaining key features
+
+---
+
 ## [1.3.0] - 2026-02-19
 
 ### 🎯 Custom Conflict Resolvers, Delta Sync & Encryption
