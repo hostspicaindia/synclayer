@@ -9,7 +9,7 @@
 
 Works with REST APIs, Firebase, Supabase, Appwrite, or any custom backend.
 
-✅ **PRODUCTION READY** - v1.0.0 stable release. Battle-tested with 242+ downloads and perfect pub.dev score (160/160).
+✅ **PRODUCTION READY** - v1.3.1 stable release. Battle-tested with 242+ downloads and perfect pub.dev score (160/160).
 
 ---
 
