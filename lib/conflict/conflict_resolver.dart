@@ -1,3 +1,5 @@
+import 'custom_conflict_resolver.dart';
+
 /// Strategies for resolving conflicts when the same document is modified
 /// on multiple devices.
 ///
@@ -43,6 +45,15 @@ enum ConflictStrategy {
   /// Use when: You want to ensure local changes are never lost,
   /// even if they conflict with the server.
   clientWins,
+
+  /// Use a custom conflict resolver function.
+  ///
+  /// Allows implementing custom conflict resolution logic for
+  /// specific use cases like merging arrays, summing quantities,
+  /// or field-level merging.
+  ///
+  /// Use when: Built-in strategies don't fit your use case.
+  custom,
 }
 
 /// Handles data conflicts during synchronization.
@@ -66,11 +77,37 @@ enum ConflictStrategy {
 ///
 /// // winner will be remoteData because it's more recent
 /// ```
+///
+/// Custom conflict resolution example:
+/// ```dart
+/// final resolver = ConflictResolver(
+///   strategy: ConflictStrategy.custom,
+///   customResolver: (local, remote, localTime, remoteTime) {
+///     // Merge arrays instead of replacing
+///     return {
+///       ...remote,
+///       'tags': [
+///         ...List<String>.from(local['tags'] ?? []),
+///         ...List<String>.from(remote['tags'] ?? []),
+///       ].toSet().toList(),
+///     };
+///   },
+/// );
+/// ```
 class ConflictResolver {
   /// The strategy to use for resolving conflicts.
   final ConflictStrategy strategy;
 
-  ConflictResolver({this.strategy = ConflictStrategy.lastWriteWins});
+  /// Custom conflict resolver function (required when strategy is custom).
+  final CustomConflictResolverCallback? customResolver;
+
+  ConflictResolver({
+    this.strategy = ConflictStrategy.lastWriteWins,
+    this.customResolver,
+  }) : assert(
+          strategy != ConflictStrategy.custom || customResolver != null,
+          'customResolver is required when strategy is ConflictStrategy.custom',
+        );
 
   /// Resolves a conflict between local and remote versions of a document.
   ///
@@ -107,6 +144,14 @@ class ConflictResolver {
 
       case ConflictStrategy.clientWins:
         return localData;
+
+      case ConflictStrategy.custom:
+        return customResolver!(
+          localData,
+          remoteData,
+          localTimestamp,
+          remoteTimestamp,
+        );
     }
   }
 }

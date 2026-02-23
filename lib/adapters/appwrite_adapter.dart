@@ -1,6 +1,7 @@
 // ignore_for_file: depend_on_referenced_packages, uri_does_not_exist, undefined_class, undefined_identifier, undefined_method
 import 'package:appwrite/appwrite.dart';
 import '../network/sync_backend_adapter.dart';
+import '../sync/sync_filter.dart';
 
 /// Appwrite adapter for SyncLayer
 ///
@@ -76,14 +77,73 @@ class AppwriteAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    // Appwrite doesn't have native delta sync support
+    // Update only the changed fields
+    try {
+      await databases.updateDocument(
+        databaseId: databaseId,
+        collectionId: collection,
+        documentId: recordId,
+        data: {
+          'data': delta, // Note: This only updates changed fields
+          'updated_at': timestamp.toIso8601String(),
+        },
+      );
+    } catch (e) {
+      // If document doesn't exist, create it with delta as initial data
+      await databases.createDocument(
+        databaseId: databaseId,
+        collectionId: collection,
+        documentId: recordId,
+        data: {
+          'data': delta,
+          'updated_at': timestamp.toIso8601String(),
+          'version': 1,
+        },
+      );
+    }
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
+    SyncFilter? filter,
   }) async {
     List<String> queries = [];
 
-    if (since != null) {
-      queries.add(Query.greaterThan('updated_at', since.toIso8601String()));
+    // Use filter's since if provided, otherwise use since parameter
+    final effectiveSince = filter?.since ?? since;
+    if (effectiveSince != null) {
+      queries.add(
+          Query.greaterThan('updated_at', effectiveSince.toIso8601String()));
+    }
+
+    // Apply filter where conditions
+    if (filter?.where != null) {
+      for (final entry in filter!.where!.entries) {
+        // Appwrite supports nested attribute queries
+        queries.add(Query.equal('data.${entry.key}', entry.value));
+      }
+    }
+
+    // Apply pagination - use filter's limit if provided
+    final effectiveLimit = filter?.limit ?? limit;
+    if (effectiveLimit != null) {
+      queries.add(Query.limit(effectiveLimit));
+    }
+
+    if (offset != null) {
+      queries.add(Query.offset(offset));
     }
 
     final response = await databases.listDocuments(
@@ -93,9 +153,16 @@ class AppwriteAdapter implements SyncBackendAdapter {
     );
 
     return response.documents.map((doc) {
+      var recordData = doc.data['data'] as Map<String, dynamic>;
+
+      // Apply field filtering if specified
+      if (filter != null) {
+        recordData = filter.applyFieldFilter(recordData);
+      }
+
       return SyncRecord(
         recordId: doc.$id,
-        data: doc.data['data'] as Map<String, dynamic>,
+        data: recordData,
         updatedAt: DateTime.parse(doc.data['updated_at'] as String),
         version: doc.data['version'] as int? ?? 1,
       );

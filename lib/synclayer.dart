@@ -5,7 +5,7 @@
 /// - Automatic sync when online
 /// - Conflict resolution strategies
 /// - Real-time data updates
-/// - Backend adapters for 14+ databases
+/// - Backend adapters for Firebase, Supabase, Appwrite
 ///
 /// ## Quick Start
 ///
@@ -27,13 +27,6 @@
 /// });
 /// ```
 ///
-/// ## Database Adapters
-///
-/// Import adapters separately based on your database:
-/// ```dart
-/// import 'package:synclayer/adapters.dart';
-/// ```
-///
 /// See the [README](https://pub.dev/packages/synclayer) for more examples.
 library synclayer;
 
@@ -41,10 +34,24 @@ export 'core/synclayer_init.dart';
 export 'core/sync_event.dart';
 export 'network/sync_backend_adapter.dart';
 export 'conflict/conflict_resolver.dart';
+export 'conflict/custom_conflict_resolver.dart';
+export 'utils/logger.dart';
+export 'utils/metrics.dart';
+export 'query/query_builder.dart';
+export 'query/query_operators.dart';
+export 'sync/sync_filter.dart';
+export 'sync/delta_sync.dart';
+export 'security/encryption_config.dart';
+export 'security/encryption_service.dart';
+// Note: Platform adapters (Firebase, Supabase, Appwrite) are available on GitHub
+// See: https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters
 
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'core/synclayer_init.dart';
+import 'utils/logger.dart';
+import 'utils/metrics.dart';
+import 'query/query_builder.dart';
 
 /// Main entry point for SyncLayer SDK.
 ///
@@ -164,6 +171,71 @@ class SyncLayer {
   static Future<void> syncNow() async {
     await SyncLayerCore.instance.syncEngine.syncNow();
   }
+
+  /// Get current sync metrics
+  ///
+  /// Returns a snapshot of current sync performance metrics including
+  /// success rates, average duration, conflicts, and error patterns.
+  ///
+  /// Example:
+  /// ```dart
+  /// final metrics = SyncLayer.getMetrics();
+  /// print('Success rate: ${(metrics.successRate * 100).toStringAsFixed(1)}%');
+  /// print('Average sync: ${metrics.averageSyncDuration?.inMilliseconds}ms');
+  /// ```
+  static SyncMetricsSnapshot getMetrics() {
+    return SyncMetrics.instance.getSnapshot();
+  }
+
+  /// Configure logger settings
+  ///
+  /// Customize logging behavior including enabling/disabling logs,
+  /// setting minimum log level, and providing custom logger implementation.
+  ///
+  /// Example:
+  /// ```dart
+  /// SyncLayer.configureLogger(
+  ///   enabled: true,
+  ///   minLevel: LogLevel.warning,
+  ///   customLogger: (level, message, error, stackTrace) {
+  ///     // Send to your analytics service
+  ///     analytics.log(level.name, message);
+  ///   },
+  /// );
+  /// ```
+  static void configureLogger({
+    bool enabled = true,
+    LogLevel minLevel = LogLevel.info,
+    void Function(LogLevel level, String message,
+            [dynamic error, StackTrace? stackTrace])?
+        customLogger,
+  }) {
+    SyncLogger.setEnabled(enabled);
+    SyncLogger.setMinLevel(minLevel);
+    if (customLogger != null) {
+      SyncLogger.setCustomLogger(customLogger);
+    }
+  }
+
+  /// Configure metrics collection
+  ///
+  /// Set a custom handler to receive metric events for analytics or monitoring.
+  ///
+  /// Example:
+  /// ```dart
+  /// SyncLayer.configureMetrics(
+  ///   customHandler: (event) {
+  ///     analytics.track(event.type, event.data);
+  ///   },
+  /// );
+  /// ```
+  static void configureMetrics({
+    void Function(SyncMetricEvent event)? customHandler,
+  }) {
+    if (customHandler != null) {
+      SyncMetrics.setCustomHandler(customHandler);
+    }
+  }
 }
 
 /// Reference to a collection for performing CRUD operations.
@@ -235,21 +307,23 @@ class CollectionReference {
     final core = SyncLayerCore.instance;
     final recordId = id ?? _uuid.v4();
 
-    // Save locally first
+    // Check if record exists BEFORE saving to determine insert vs update
+    final existing = await core.localStorage.getData(
+      collectionName: _name,
+      recordId: recordId,
+    );
+    final isUpdate = existing != null;
+
+    // Save locally
     await core.localStorage.saveData(
       collectionName: _name,
       recordId: recordId,
       data: jsonEncode(data),
     );
 
-    // Queue for sync - access queue manager through sync engine
+    // Queue for sync based on whether record existed before
     final queueManager = core.syncEngine.queueManager;
-    final existing = await core.localStorage.getData(
-      collectionName: _name,
-      recordId: recordId,
-    );
-
-    if (existing != null && existing.createdAt != existing.updatedAt) {
+    if (isUpdate) {
       await queueManager.queueUpdate(
         collectionName: _name,
         recordId: recordId,
@@ -349,6 +423,87 @@ class CollectionReference {
     );
   }
 
+  /// Updates specific fields of a document (delta sync).
+  ///
+  /// Only sends the changed fields to the backend, reducing bandwidth
+  /// usage by up to 98% compared to sending the entire document.
+  ///
+  /// Benefits:
+  /// - Bandwidth: Sending 1 field vs 50 fields = 98% savings
+  /// - Conflicts: Fewer conflicts when only specific fields change
+  /// - Performance: Faster sync, less data transfer
+  /// - Battery: Less network usage = better battery life
+  /// - Cost: Lower server bandwidth costs
+  ///
+  /// Parameters:
+  /// - [id]: The document ID to update.
+  /// - [updates]: Map of fields to update. Only these fields will be synced.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Instead of sending entire document:
+  /// await collection.save({
+  ///   'id': '123',
+  ///   'title': 'My Document',
+  ///   'content': '... 50KB of content ...',
+  ///   'done': true,  // Only this changed
+  /// }, id: '123');
+  ///
+  /// // Use delta sync - only send changed field:
+  /// await collection.update('123', {'done': true});
+  /// // Saves 98% bandwidth!
+  /// ```
+  ///
+  /// Real-world examples:
+  /// ```dart
+  /// // Toggle todo completion
+  /// await collection.update(todoId, {'done': true});
+  ///
+  /// // Increment view count
+  /// final doc = await collection.get(docId);
+  /// await collection.update(docId, {'views': (doc!['views'] ?? 0) + 1});
+  ///
+  /// // Update multiple fields
+  /// await collection.update(userId, {
+  ///   'lastSeen': DateTime.now().toIso8601String(),
+  ///   'status': 'online',
+  /// });
+  /// ```
+  Future<void> update(String id, Map<String, dynamic> updates) async {
+    final core = SyncLayerCore.instance;
+
+    // Get current document
+    final existing = await core.localStorage.getData(
+      collectionName: _name,
+      recordId: id,
+    );
+
+    if (existing == null) {
+      throw StateError('Document $id not found in collection $_name');
+    }
+
+    // Parse existing data
+    final currentData = jsonDecode(existing.data) as Map<String, dynamic>;
+
+    // Merge updates into current data
+    final updatedData = {...currentData, ...updates};
+
+    // Save merged data locally
+    await core.localStorage.saveData(
+      collectionName: _name,
+      recordId: id,
+      data: jsonEncode(updatedData),
+    );
+
+    // Queue delta update (only changed fields)
+    await core.syncEngine.queueManager.queueDeltaUpdate(
+      collectionName: _name,
+      recordId: id,
+      delta: updates,
+      baseVersion: existing.version,
+    );
+  }
+
   /// Returns a stream that emits the collection's documents whenever they change.
   ///
   /// The stream emits immediately with the current state, then emits again
@@ -386,6 +541,10 @@ class CollectionReference {
       return records
           .map((r) => jsonDecode(r.data) as Map<String, dynamic>)
           .toList();
+    }).handleError((error, stackTrace) {
+      // Log error and return empty list to prevent stream from breaking
+      print('Error in watch stream for collection $_name: $error');
+      return <Map<String, dynamic>>[];
     });
   }
 
@@ -416,26 +575,54 @@ class CollectionReference {
   Future<List<String>> saveAll(List<Map<String, dynamic>> documents) async {
     final core = SyncLayerCore.instance;
     final ids = <String>[];
+    final operations = <Future<void>>[];
 
-    for (final data in documents) {
-      final id = data['id'] as String? ?? _uuid.v4();
-      ids.add(id);
+    try {
+      // Prepare all operations first
+      for (final data in documents) {
+        final id = data['id'] as String? ?? _uuid.v4();
+        ids.add(id);
 
-      await core.localStorage.saveData(
-        collectionName: _name,
-        recordId: id,
-        data: jsonEncode(data),
-      );
+        // Check if record exists to determine insert vs update
+        final existing = await core.localStorage.getData(
+          collectionName: _name,
+          recordId: id,
+        );
+        final isUpdate = existing != null;
 
-      final queueManager = core.syncEngine.queueManager;
-      await queueManager.queueInsert(
-        collectionName: _name,
-        recordId: id,
-        data: data,
-      );
+        // Save to local storage
+        await core.localStorage.saveData(
+          collectionName: _name,
+          recordId: id,
+          data: jsonEncode(data),
+        );
+
+        // Queue for sync
+        final queueManager = core.syncEngine.queueManager;
+        if (isUpdate) {
+          operations.add(queueManager.queueUpdate(
+            collectionName: _name,
+            recordId: id,
+            data: data,
+          ));
+        } else {
+          operations.add(queueManager.queueInsert(
+            collectionName: _name,
+            recordId: id,
+            data: data,
+          ));
+        }
+      }
+
+      // Execute all queue operations
+      await Future.wait(operations);
+      return ids;
+    } catch (e) {
+      // If any operation fails, log the error
+      // Note: Isar handles transaction rollback automatically for write operations
+      print('Error in saveAll for collection $_name: $e');
+      rethrow;
     }
-
-    return ids;
   }
 
   /// Deletes multiple documents in a single batch operation.
@@ -459,17 +646,165 @@ class CollectionReference {
   /// ```
   Future<void> deleteAll(List<String> ids) async {
     final core = SyncLayerCore.instance;
+    final operations = <Future<void>>[];
 
-    for (final id in ids) {
-      await core.localStorage.deleteData(
-        collectionName: _name,
-        recordId: id,
-      );
+    try {
+      // Delete from local storage first
+      for (final id in ids) {
+        await core.localStorage.deleteData(
+          collectionName: _name,
+          recordId: id,
+        );
 
-      await core.syncEngine.queueManager.queueDelete(
-        collectionName: _name,
-        recordId: id,
-      );
+        // Queue delete operations
+        operations.add(core.syncEngine.queueManager.queueDelete(
+          collectionName: _name,
+          recordId: id,
+        ));
+      }
+
+      // Execute all queue operations
+      await Future.wait(operations);
+    } catch (e) {
+      // If any operation fails, log the error
+      // Note: Isar handles transaction rollback automatically for write operations
+      print('Error in deleteAll for collection $_name: $e');
+      rethrow;
     }
+  }
+
+  /// Creates a query builder for filtering and sorting documents.
+  ///
+  /// Use this to build complex queries with multiple conditions, sorting,
+  /// and pagination. The query builder provides a fluent API for constructing
+  /// queries.
+  ///
+  /// Parameters:
+  /// - [field]: The field name to filter on.
+  /// - All other parameters are query operators (see [QueryBuilder.where]).
+  ///
+  /// Returns:
+  /// A [QueryBuilder] that can be further refined with additional conditions.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Simple filter
+  /// final incompleteTodos = await collection
+  ///     .where('done', isEqualTo: false)
+  ///     .get();
+  ///
+  /// // Multiple conditions
+  /// final highPriorityTodos = await collection
+  ///     .where('done', isEqualTo: false)
+  ///     .where('priority', isGreaterThan: 5)
+  ///     .orderBy('priority', descending: true)
+  ///     .limit(10)
+  ///     .get();
+  ///
+  /// // Watch with filters
+  /// collection
+  ///     .where('userId', isEqualTo: currentUserId)
+  ///     .watch()
+  ///     .listen((todos) {
+  ///       print('User todos: ${todos.length}');
+  ///     });
+  /// ```
+  QueryBuilder where(
+    String field, {
+    dynamic isEqualTo,
+    dynamic isNotEqualTo,
+    dynamic isGreaterThan,
+    dynamic isGreaterThanOrEqualTo,
+    dynamic isLessThan,
+    dynamic isLessThanOrEqualTo,
+    String? startsWith,
+    String? endsWith,
+    String? contains,
+    dynamic arrayContains,
+    List<dynamic>? arrayContainsAny,
+    List<dynamic>? whereIn,
+    List<dynamic>? whereNotIn,
+    bool? isNull,
+  }) {
+    return QueryBuilder(_name).where(
+      field,
+      isEqualTo: isEqualTo,
+      isNotEqualTo: isNotEqualTo,
+      isGreaterThan: isGreaterThan,
+      isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,
+      isLessThan: isLessThan,
+      isLessThanOrEqualTo: isLessThanOrEqualTo,
+      startsWith: startsWith,
+      endsWith: endsWith,
+      contains: contains,
+      arrayContains: arrayContains,
+      arrayContainsAny: arrayContainsAny,
+      whereIn: whereIn,
+      whereNotIn: whereNotIn,
+      isNull: isNull,
+    );
+  }
+
+  /// Creates a query builder with sorting.
+  ///
+  /// Use this to sort documents without filtering.
+  ///
+  /// Parameters:
+  /// - [field]: The field name to sort by.
+  /// - [descending]: Whether to sort in descending order (default: false).
+  ///
+  /// Returns:
+  /// A [QueryBuilder] that can be further refined.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Sort by creation date (newest first)
+  /// final todos = await collection
+  ///     .orderBy('createdAt', descending: true)
+  ///     .get();
+  /// ```
+  QueryBuilder orderBy(String field, {bool descending = false}) {
+    return QueryBuilder(_name).orderBy(field, descending: descending);
+  }
+
+  /// Creates a query builder with a limit.
+  ///
+  /// Use this to limit the number of results without filtering.
+  ///
+  /// Parameters:
+  /// - [count]: Maximum number of documents to return.
+  ///
+  /// Returns:
+  /// A [QueryBuilder] that can be further refined.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Get first 10 todos
+  /// final todos = await collection.limit(10).get();
+  /// ```
+  QueryBuilder limit(int count) {
+    return QueryBuilder(_name).limit(count);
+  }
+
+  /// Creates a query builder with an offset.
+  ///
+  /// Use this for pagination by skipping a number of documents.
+  ///
+  /// Parameters:
+  /// - [count]: Number of documents to skip.
+  ///
+  /// Returns:
+  /// A [QueryBuilder] that can be further refined.
+  ///
+  /// Example:
+  /// ```dart
+  /// // Get page 2 (skip first 10, take next 10)
+  /// final todos = await collection
+  ///     .offset(10)
+  ///     .limit(10)
+  ///     .get();
+  /// ```
+  QueryBuilder offset(int count) {
+    return QueryBuilder(_name).offset(count);
   }
 }

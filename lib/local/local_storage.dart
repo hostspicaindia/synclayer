@@ -1,11 +1,17 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'local_models.dart';
+import '../security/encryption_service.dart';
 
 /// Local storage abstraction over Isar database
 class LocalStorage {
   late Isar _isar;
   bool _isInitialized = false;
+  final EncryptionService? encryptionService;
+
+  LocalStorage({this.encryptionService});
 
   /// Initialize Isar database
   Future<void> init() async {
@@ -30,6 +36,10 @@ class LocalStorage {
   }) async {
     _ensureInitialized();
 
+    // Encrypt data if encryption is enabled
+    final dataToStore =
+        encryptionService != null ? encryptionService!.encryptData(data) : data;
+
     await _isar.writeTxn(() async {
       final existing = await _isar.dataRecords
           .filter()
@@ -40,7 +50,7 @@ class LocalStorage {
       final record = existing ?? DataRecord();
       record.collectionName = collectionName;
       record.recordId = recordId;
-      record.data = data;
+      record.data = dataToStore;
       record.updatedAt = DateTime.now();
 
       if (existing == null) {
@@ -51,7 +61,7 @@ class LocalStorage {
         record.version += 1;
       }
 
-      // Generate sync hash for change detection
+      // Generate sync hash for change detection (on original data, not encrypted)
       record.syncHash = _generateHash(data);
       record.isSynced = false;
 
@@ -59,17 +69,11 @@ class LocalStorage {
     });
   }
 
-  /// Generate SHA-1 hash for data
+  /// Generate SHA-256 hash for data integrity verification
   String _generateHash(String data) {
-    // Simple hash implementation using data length and content
-    // In production, use crypto package for proper SHA-1
-    final bytes = data.codeUnits;
-    int hash = 0;
-    for (final byte in bytes) {
-      hash = ((hash << 5) - hash) + byte;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return hash.abs().toString();
+    final bytes = utf8.encode(data);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
   /// Get data by record ID
@@ -79,23 +83,65 @@ class LocalStorage {
   }) async {
     _ensureInitialized();
 
-    return await _isar.dataRecords
+    final record = await _isar.dataRecords
         .filter()
         .collectionNameEqualTo(collectionName)
         .recordIdEqualTo(recordId)
         .isDeletedEqualTo(false)
         .findFirst();
+
+    if (record == null) return null;
+
+    // Decrypt data if encryption is enabled
+    if (encryptionService != null) {
+      final decryptedData = encryptionService!.decryptData(record.data);
+      return DataRecord()
+        ..id = record.id
+        ..collectionName = record.collectionName
+        ..recordId = record.recordId
+        ..data = decryptedData
+        ..createdAt = record.createdAt
+        ..updatedAt = record.updatedAt
+        ..version = record.version
+        ..syncHash = record.syncHash
+        ..isSynced = record.isSynced
+        ..isDeleted = record.isDeleted
+        ..lastSyncedAt = record.lastSyncedAt;
+    }
+
+    return record;
   }
 
   /// Get all records in a collection
   Future<List<DataRecord>> getAllData(String collectionName) async {
     _ensureInitialized();
 
-    return await _isar.dataRecords
+    final records = await _isar.dataRecords
         .filter()
         .collectionNameEqualTo(collectionName)
         .isDeletedEqualTo(false)
         .findAll();
+
+    // Decrypt data if encryption is enabled
+    if (encryptionService != null) {
+      return records.map((record) {
+        final decryptedData = encryptionService!.decryptData(record.data);
+        return DataRecord()
+          ..id = record.id
+          ..collectionName = record.collectionName
+          ..recordId = record.recordId
+          ..data = decryptedData
+          ..createdAt = record.createdAt
+          ..updatedAt = record.updatedAt
+          ..version = record.version
+          ..syncHash = record.syncHash
+          ..isSynced = record.isSynced
+          ..isDeleted = record.isDeleted
+          ..lastSyncedAt = record.lastSyncedAt;
+      }).toList();
+    }
+
+    return records;
   }
 
   /// Watch collection for changes
@@ -139,6 +185,15 @@ class LocalStorage {
 
     await _isar.writeTxn(() async {
       await _isar.syncOperations.put(operation);
+    });
+  }
+
+  /// Add multiple operations to sync queue in a single transaction
+  Future<void> addToSyncQueueBatch(List<SyncOperation> operations) async {
+    _ensureInitialized();
+
+    await _isar.writeTxn(() async {
+      await _isar.syncOperations.putAll(operations);
     });
   }
 

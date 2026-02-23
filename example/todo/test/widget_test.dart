@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synclayer/synclayer.dart';
-import 'package:synclayer/network/sync_backend_adapter.dart';
 import 'package:todo/main.dart';
 import 'package:todo/screens/todo_screen.dart';
 
@@ -16,9 +15,21 @@ class MockBackendAdapter implements SyncBackendAdapter {
   }) async {}
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {}
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
+    SyncFilter? filter,
   }) async {
     return [];
   }

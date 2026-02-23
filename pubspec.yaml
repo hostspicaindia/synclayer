@@ -1,6 +1,6 @@
 name: synclayer
-description: A local-first sync SDK for Flutter with offline support, automatic conflict resolution, and real-time synchronization. Supports 14+ databases including PostgreSQL, MySQL, MongoDB, Firebase, and more.
-version: 1.4.0
+description: Local-first sync engine for Flutter with offline support, delta sync, encryption, custom conflict resolvers, and real-time synchronization.
+version: 1.3.2
 homepage: https://sdk.hostspica.com/flutter/synclayer
 repository: https://github.com/hostspicaindia/synclayer
 issue_tracker: https://github.com/hostspicaindia/synclayer/issues
@@ -13,36 +13,17 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # Core dependencies (always required)
   isar: ^3.1.0+1
   isar_flutter_libs: ^3.1.0+1
   dio: ^5.9.1
   connectivity_plus: ^7.0.0
   path_provider: ^2.1.5
   uuid: ^4.5.2
-
-# Optional database adapter dependencies
-# Users should add these to their own pubspec.yaml based on which database they use
-# 
-# BaaS Platforms:
-#   appwrite: ^21.3.0              # For AppwriteAdapter
-#   cloud_firestore: ^6.1.2        # For FirebaseAdapter
-#   supabase_flutter: ^2.12.0      # For SupabaseAdapter
-#
-# SQL Databases:
-#   postgres: ^3.0.0               # For PostgresAdapter
-#   mysql1: ^0.20.0                # For MySQLAdapter/MariaDBAdapter
-#   sqflite: ^2.3.0                # For SQLiteAdapter
-#
-# NoSQL Databases:
-#   mongo_dart: ^0.10.0            # For MongoDBAdapter
-#   redis: ^3.1.0                  # For RedisAdapter
-#   aws_dynamodb_api: ^2.0.0       # For DynamoDBAdapter
-#   dart_cassandra_cql: ^0.5.0     # For CassandraAdapter
-#
-# API Protocols:
-#   graphql: ^5.1.0                # For GraphQLAdapter
-#   # dio already included for REST/CouchDB
+  crypto: ^3.0.3
+  encrypt: ^5.0.3
+  appwrite: ^21.3.0
+  cloud_firestore: ^6.1.2
+  supabase_flutter: ^2.12.0
 
 dev_dependencies:
   flutter_test:

@@ -4,6 +4,8 @@ import '../local/local_storage.dart';
 import '../local/local_models.dart';
 import '../network/sync_backend_adapter.dart';
 import '../utils/connectivity_service.dart';
+import '../utils/logger.dart';
+import '../utils/metrics.dart';
 import '../core/synclayer_init.dart';
 import '../core/sync_event.dart';
 import '../conflict/conflict_resolver.dart';
@@ -25,6 +27,13 @@ class SyncEngine {
 
   // Event bus for logging, analytics, debugging
   final _eventController = StreamController<SyncEvent>.broadcast();
+
+  // Logger and metrics
+  final _logger = SyncLogger.instance;
+  final _metrics = SyncMetrics.instance;
+
+  // Timeout for individual sync operations
+  final Duration _operationTimeout = const Duration(seconds: 30);
 
   SyncEngine({
     required LocalStorage localStorage,
@@ -87,9 +96,9 @@ class SyncEngine {
   Future<void> _resetFailedOperations() async {
     try {
       await _queueManager.resetFailedOperations();
-      print('🔄 Reset failed operations to retry');
-    } catch (e) {
-      print('❌ Error resetting failed operations: $e');
+      _logger.info('Reset failed operations to retry');
+    } catch (e, stackTrace) {
+      _logger.error('Error resetting failed operations', e, stackTrace);
     }
   }
 
@@ -98,7 +107,11 @@ class SyncEngine {
     _isRunning = false;
     _syncTimer?.cancel();
     await _connectivitySubscription?.cancel();
-    await _eventController.close();
+
+    // Close event controller safely
+    if (!_eventController.isClosed) {
+      await _eventController.close();
+    }
   }
 
   /// Perform full sync (push then pull)
@@ -106,16 +119,24 @@ class SyncEngine {
     if (!_connectivityService.isOnline) return;
 
     // Prevent concurrent sync operations
-    if (_isSyncing) return;
+    if (_isSyncing) {
+      _logger.warning('Sync already in progress, skipping');
+      return;
+    }
 
     _isSyncing = true;
+    _metrics.recordSyncAttempt();
     _eventController.add(SyncEvent(type: SyncEventType.syncStarted));
 
     try {
       await _pushSync();
       await _pullSync();
+      _metrics.recordSyncSuccess();
       _eventController.add(SyncEvent(type: SyncEventType.syncCompleted));
-    } catch (e) {
+      _logger.info('Sync completed successfully');
+    } catch (e, stackTrace) {
+      _logger.error('Sync failed', e, stackTrace);
+      _metrics.recordSyncFailure(e.toString());
       _eventController.add(SyncEvent(
         type: SyncEventType.syncFailed,
         error: e.toString(),
@@ -129,15 +150,21 @@ class SyncEngine {
   Future<void> _pushSync() async {
     final operations = await _queueManager.getPendingOperations();
 
-    print('🔄 Push sync: ${operations.length} pending operations');
+    _logger.info('Push sync: ${operations.length} pending operations');
 
     for (final operation in operations) {
-      print(
-          '📤 Processing: ${operation.operationType} ${operation.recordId} (retry: ${operation.retryCount})');
+      _logger.debug(
+        'Processing: ${operation.operationType} ${operation.recordId} '
+        '(retry: ${operation.retryCount})',
+      );
 
       if (operation.retryCount >= _config.maxRetries) {
-        print('❌ Max retries exceeded for ${operation.recordId}');
+        _logger.warning('Max retries exceeded for ${operation.recordId}');
         await _queueManager.markAsFailed(operation.id, 'Max retries exceeded');
+        _metrics.recordOperationFailed(
+          operation.operationType,
+          'Max retries exceeded',
+        );
         _eventController.add(SyncEvent(
           type: SyncEventType.operationFailed,
           collectionName: operation.collectionName,
@@ -150,37 +177,33 @@ class SyncEngine {
       try {
         await _queueManager.markAsSyncing(operation.id);
 
-        final data = jsonDecode(operation.payload) as Map<String, dynamic>;
-
-        switch (operation.operationType) {
-          case 'insert':
-          case 'update':
-            print('📡 Pushing to backend: ${operation.recordId}');
-            await _backendAdapter.push(
-              collection: operation.collectionName,
-              recordId: operation.recordId!,
-              data: data,
-              timestamp: operation.timestamp,
-            );
-            break;
-
-          case 'delete':
-            await _backendAdapter.delete(
-              collection: operation.collectionName,
-              recordId: operation.recordId!,
-            );
-            break;
+        final data = jsonDecode(operation.payload) as Map<String, dynamic>?;
+        if (data == null) {
+          throw FormatException('Invalid payload: null data');
         }
 
+        // Execute operation with timeout
+        await _executeSyncOperation(operation, data).timeout(
+          _operationTimeout,
+          onTimeout: () {
+            throw TimeoutException(
+              'Operation timed out after ${_operationTimeout.inSeconds}s',
+            );
+          },
+        );
+
         await _queueManager.markAsSynced(operation.id);
-        print('✅ Synced: ${operation.recordId}');
+        _logger.debug('Synced: ${operation.recordId}');
+        _metrics.recordOperationSynced(operation.operationType);
         _eventController.add(SyncEvent(
           type: SyncEventType.operationSynced,
           collectionName: operation.collectionName,
           recordId: operation.recordId,
         ));
-      } catch (e) {
-        print('❌ Sync failed for ${operation.recordId}: $e');
+      } catch (e, stackTrace) {
+        _logger.error('Sync failed for ${operation.recordId}', e, stackTrace);
+        _metrics.recordOperationFailed(operation.operationType, e.toString());
+
         // Increment retry count
         await _queueManager.incrementRetryCount(operation.id);
         await _queueManager.markAsFailed(operation.id, e.toString());
@@ -194,60 +217,188 @@ class SyncEngine {
     }
   }
 
-  /// Pull remote changes from server
+  /// Execute a single sync operation
+  Future<void> _executeSyncOperation(
+    SyncOperation operation,
+    Map<String, dynamic> data,
+  ) async {
+    switch (operation.operationType) {
+      case 'insert':
+      case 'update':
+        _logger.debug('Pushing to backend: ${operation.recordId}');
+        await _backendAdapter.push(
+          collection: operation.collectionName,
+          recordId: operation.recordId!,
+          data: data,
+          timestamp: operation.timestamp,
+        );
+        break;
+
+      case 'delta_update':
+        // Extract delta from payload
+        final isDelta = data['isDelta'] == true;
+        if (isDelta) {
+          final delta = data['delta'] as Map<String, dynamic>;
+          final baseVersion = data['baseVersion'] as int;
+
+          _logger.debug(
+            'Pushing delta to backend: ${operation.recordId} '
+            '(${delta.keys.length} fields changed)',
+          );
+
+          // Push delta update to backend
+          await _backendAdapter.pushDelta(
+            collection: operation.collectionName,
+            recordId: operation.recordId!,
+            delta: delta,
+            baseVersion: baseVersion,
+            timestamp: operation.timestamp,
+          );
+        } else {
+          // Fallback to regular update if backend doesn't support delta
+          _logger.warning(
+            'Backend does not support delta sync, falling back to full update',
+          );
+          await _backendAdapter.push(
+            collection: operation.collectionName,
+            recordId: operation.recordId!,
+            data: data,
+            timestamp: operation.timestamp,
+          );
+        }
+        break;
+
+      case 'delete':
+        await _backendAdapter.delete(
+          collection: operation.collectionName,
+          recordId: operation.recordId!,
+        );
+        break;
+
+      default:
+        throw ArgumentError(
+            'Unknown operation type: ${operation.operationType}');
+    }
+  }
+
+  /// Pull remote changes from server with pagination
   Future<void> _pullSync() async {
+    const int pageSize = 100; // Pull 100 records at a time
+
     try {
       // Get collections to sync: use configured collections if provided,
       // otherwise fall back to local collections
       List<String> collections;
       if (_config.collections.isNotEmpty) {
         collections = _config.collections;
-        print('📥 Pull sync: Using configured collections: $collections');
+        _logger.info('Pull sync: Using configured collections: $collections');
       } else {
         collections = await _localStorage.getAllCollections();
-        print('📥 Pull sync: Using local collections: $collections');
+        _logger.info('Pull sync: Using local collections: $collections');
       }
 
       // If no collections found, skip pull sync
       if (collections.isEmpty) {
-        print('⚠️ Pull sync: No collections to sync');
+        _logger.warning('Pull sync: No collections to sync');
         return;
       }
 
       for (final collection in collections) {
+        // Get sync filter for this collection
+        final filter = _config.syncFilters[collection];
+
         // Get last sync timestamp for this collection
         final lastSyncTime = await _localStorage.getLastSyncTime(collection);
 
-        print('📥 Pulling $collection since: ${lastSyncTime ?? "beginning"}');
+        // Use filter's since timestamp if provided, otherwise use last sync time
+        final effectiveSince = filter?.since ?? lastSyncTime;
 
-        // Pull changes from backend since last sync
-        final remoteRecords = await _backendAdapter.pull(
-          collection: collection,
-          since: lastSyncTime,
+        _logger.info(
+          'Pulling $collection since: ${effectiveSince ?? "beginning"}'
+          '${filter != null ? " with filter: $filter" : ""}',
         );
 
-        print('📥 Received ${remoteRecords.length} records from $collection');
-
-        // Process each remote record and track latest timestamp
+        // Pull changes from backend with pagination
+        int offset = 0;
         DateTime? latestTimestamp;
-        for (final remoteRecord in remoteRecords) {
-          await _processRemoteRecord(collection, remoteRecord);
-          print('✅ Processed remote record: ${remoteRecord.recordId}');
+        int totalRecords = 0;
 
-          // Track the latest updatedAt timestamp from pulled records
-          if (latestTimestamp == null ||
-              remoteRecord.updatedAt.isAfter(latestTimestamp)) {
-            latestTimestamp = remoteRecord.updatedAt;
+        while (true) {
+          final remoteRecords = await _backendAdapter
+              .pull(
+            collection: collection,
+            since: effectiveSince,
+            limit: filter?.limit ?? pageSize,
+            offset: offset,
+            filter: filter,
+          )
+              .timeout(
+            _operationTimeout,
+            onTimeout: () {
+              throw TimeoutException(
+                'Pull operation timed out after ${_operationTimeout.inSeconds}s',
+              );
+            },
+          );
+
+          if (remoteRecords.isEmpty) {
+            break; // No more records to pull
           }
+
+          _logger.debug(
+              'Received ${remoteRecords.length} records (offset: $offset)');
+          totalRecords += remoteRecords.length;
+
+          // Process each remote record and track latest timestamp
+          for (final remoteRecord in remoteRecords) {
+            // Apply local filtering if filter is specified
+            if (filter != null) {
+              // Check if record matches filter criteria
+              if (!filter.matches(remoteRecord.data, remoteRecord.updatedAt)) {
+                _logger.debug(
+                    'Skipping record ${remoteRecord.recordId} - does not match filter');
+                continue;
+              }
+
+              // Apply field filtering
+              final filteredData = filter.applyFieldFilter(remoteRecord.data);
+              final filteredRecord = SyncRecord(
+                recordId: remoteRecord.recordId,
+                data: filteredData,
+                updatedAt: remoteRecord.updatedAt,
+                version: remoteRecord.version,
+              );
+              await _processRemoteRecord(collection, filteredRecord);
+            } else {
+              await _processRemoteRecord(collection, remoteRecord);
+            }
+
+            // Track the latest updatedAt timestamp from pulled records
+            if (latestTimestamp == null ||
+                remoteRecord.updatedAt.isAfter(latestTimestamp)) {
+              latestTimestamp = remoteRecord.updatedAt;
+            }
+          }
+
+          // If we received fewer records than page size, we're done
+          // Or if filter has a limit and we've reached it
+          if (remoteRecords.length < pageSize ||
+              (filter?.limit != null && totalRecords >= filter!.limit!)) {
+            break;
+          }
+
+          offset += pageSize;
         }
+
+        _logger.info('Total records pulled for $collection: $totalRecords');
 
         // Update last sync timestamp to the latest record timestamp (or now if no records)
         final syncTime = latestTimestamp ?? DateTime.now();
         await _localStorage.updateLastSyncTime(collection, syncTime);
-        print('📥 Updated lastSyncTime for $collection to: $syncTime');
+        _logger.debug('Updated lastSyncTime for $collection to: $syncTime');
       }
-    } catch (e) {
-      print('❌ Pull sync error: $e');
+    } catch (e, stackTrace) {
+      _logger.error('Pull sync error', e, stackTrace);
       _eventController.add(SyncEvent(
         type: SyncEventType.syncFailed,
         error: 'Pull sync failed: ${e.toString()}',
@@ -303,6 +454,7 @@ class SyncEngine {
     }
 
     // Conflict detected - use conflict resolver
+    _metrics.recordConflictDetected(collection, remoteRecord.recordId);
     _eventController.add(SyncEvent(
       type: SyncEventType.conflictDetected,
       collectionName: collection,
@@ -313,7 +465,11 @@ class SyncEngine {
       },
     ));
 
-    final localData = jsonDecode(localRecord.data) as Map<String, dynamic>;
+    final localData = jsonDecode(localRecord.data) as Map<String, dynamic>?;
+    if (localData == null) {
+      throw FormatException('Invalid local data: null');
+    }
+
     final resolvedData = _conflictResolver.resolve(
       localData: localData,
       remoteData: remoteRecord.data,
@@ -334,6 +490,7 @@ class SyncEngine {
       syncTime: DateTime.now(),
     );
 
+    _metrics.recordConflictResolved(collection, remoteRecord.recordId);
     _eventController.add(SyncEvent(
       type: SyncEventType.conflictResolved,
       collectionName: collection,
@@ -348,15 +505,21 @@ class SyncEngine {
       return false;
     }
 
-    // If local has been modified after last sync, there's a potential conflict
-    if (localRecord.lastSyncedAt != null &&
-        localRecord.updatedAt.isAfter(localRecord.lastSyncedAt!)) {
-      return true;
-    }
-
     // If versions differ, there's a conflict
     if (localRecord.version != remoteRecord.version) {
       return true;
+    }
+
+    // If local has been modified after last sync with a grace period
+    // Grace period prevents false positives from modifications right after sync
+    if (localRecord.lastSyncedAt != null) {
+      final gracePeriod = Duration(seconds: 5);
+      final modifiedAfterSync = localRecord.updatedAt
+          .isAfter(localRecord.lastSyncedAt!.add(gracePeriod));
+
+      if (modifiedAfterSync) {
+        return true;
+      }
     }
 
     return false;
