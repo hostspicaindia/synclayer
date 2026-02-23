@@ -2,6 +2,93 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-02-23
+
+### 🎉 Adapter Packages on pub.dev
+
+Database adapters are now available as separate packages on pub.dev! No more copying files from GitHub.
+
+**New Packages Published:**
+- ✅ **synclayer_firebase** v1.0.0 - Firebase Firestore adapter
+- ✅ **synclayer_supabase** v1.0.0 - Supabase PostgreSQL adapter
+- ✅ **synclayer_postgres** v1.0.0 - PostgreSQL adapter
+- ✅ **synclayer_mongodb** v1.0.0 - MongoDB adapter
+- ✅ **synclayer_mysql** v1.0.0 - MySQL adapter
+- ✅ **synclayer_sqlite** v1.0.0 - SQLite adapter
+- ✅ **synclayer_redis** v1.0.0 - Redis adapter
+- ✅ **synclayer_appwrite** v1.0.0 - Appwrite adapter
+
+**Benefits:**
+- 📦 Install directly from pub.dev (no GitHub copying)
+- 🎯 Only install adapters you need
+- 🔍 Better discoverability on pub.dev
+- 📖 Comprehensive documentation per adapter
+- 🔄 Independent versioning per adapter
+- ⚡ Automatic updates via `flutter pub upgrade`
+
+**Migration from v1.4.1:**
+
+Before (v1.4.1):
+```yaml
+dependencies:
+  synclayer: ^1.4.1
+  cloud_firestore: ^6.1.2
+```
+Then manually copy `firebase_adapter.dart` from GitHub.
+
+After (v1.5.0):
+```yaml
+dependencies:
+  synclayer: ^1.5.0
+  synclayer_firebase: ^1.0.0
+```
+No manual copying needed!
+
+**Usage:**
+```dart
+import 'package:synclayer_firebase/synclayer_firebase.dart';
+
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: FirebaseAdapter(
+      firestore: FirebaseFirestore.instance,
+    ),
+    collections: ['todos'],
+  ),
+);
+```
+
+**Quick Install:**
+```bash
+flutter pub add synclayer_firebase
+flutter pub add synclayer_supabase
+flutter pub add synclayer_postgres
+# etc.
+```
+
+**Package URLs:**
+- https://pub.dev/packages/synclayer_firebase
+- https://pub.dev/packages/synclayer_supabase
+- https://pub.dev/packages/synclayer_postgres
+- https://pub.dev/packages/synclayer_mongodb
+- https://pub.dev/packages/synclayer_mysql
+- https://pub.dev/packages/synclayer_sqlite
+- https://pub.dev/packages/synclayer_redis
+- https://pub.dev/packages/synclayer_appwrite
+
+**Breaking Changes:**
+- Removed adapter files from main package (now separate packages)
+- Removed adapter dependencies from main package (appwrite, cloud_firestore, supabase_flutter)
+- No code changes required - just update dependencies and imports
+
+**Migration Steps:**
+1. Update synclayer version: `^1.4.1` → `^1.5.0`
+2. Add adapter package: e.g., `synclayer_firebase: ^1.0.0`
+3. Update import: `'adapters/firebase_adapter.dart'` → `'package:synclayer_firebase/synclayer_firebase.dart'`
+4. Remove local adapter file (no longer needed)
+
+---
+
 ## [1.4.1] - 2026-02-23
 
 ### 📝 Documentation & Bug Fixes
