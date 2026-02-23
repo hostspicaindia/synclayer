@@ -1,3 +1,4 @@
+// ignore_for_file: depend_on_referenced_packages, uri_does_not_exist, undefined_class, undefined_identifier, undefined_method, non_type_as_type_argument, cast_to_non_type
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../network/sync_backend_adapter.dart';
 

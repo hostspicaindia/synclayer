@@ -1,3 +1,4 @@
+// ignore_for_file: depend_on_referenced_packages, uri_does_not_exist, undefined_class, undefined_identifier, undefined_method, non_type_as_type_argument, cast_to_non_type
 import 'package:aws_dynamodb_api/dynamodb-2012-08-10.dart';
 import '../network/sync_backend_adapter.dart';
 

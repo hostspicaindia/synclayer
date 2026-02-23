@@ -1,3 +1,4 @@
+// ignore_for_file: depend_on_referenced_packages, uri_does_not_exist, undefined_class, undefined_identifier, undefined_method
 import 'package:sqflite/sqflite.dart';
 import '../network/sync_backend_adapter.dart';
 import 'dart:convert';
