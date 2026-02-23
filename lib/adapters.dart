@@ -1,58 +1,56 @@
 /// Database adapters for SyncLayer
 ///
-/// This library exports all available database adapters.
-/// Import only this file to access any adapter:
+/// SyncLayer supports 14+ database backends through adapter implementations.
+/// Adapters are available on GitHub and can be copied into your project.
 ///
-/// ```dart
-/// import 'package:synclayer/adapters.dart';
-/// ```
+/// ## Why Adapters Are Not Included
 ///
-/// **IMPORTANT:** Each adapter requires its own package dependency.
-/// Only install the packages for databases you actually use.
+/// Each adapter requires specific database packages (postgres, mysql1, mongo_dart, etc.).
+/// To keep SyncLayer lightweight and avoid forcing unnecessary dependencies,
+/// adapters are distributed separately via GitHub.
 ///
 /// ## Available Adapters
 ///
 /// ### BaaS Platforms
-/// - `FirebaseAdapter` - Requires: `cloud_firestore`
-/// - `SupabaseAdapter` - Requires: `supabase_flutter`
-/// - `AppwriteAdapter` - Requires: `appwrite`
+/// - `FirebaseAdapter` - Cloud Firestore
+/// - `SupabaseAdapter` - Supabase PostgreSQL
+/// - `AppwriteAdapter` - Appwrite Database
 ///
 /// ### SQL Databases
-/// - `PostgresAdapter` - Requires: `postgres`
-/// - `MySQLAdapter` - Requires: `mysql1`
-/// - `MariaDBAdapter` - Requires: `mysql1`
-/// - `SQLiteAdapter` - Requires: `sqflite`
+/// - `PostgresAdapter` - PostgreSQL
+/// - `MySQLAdapter` - MySQL
+/// - `MariaDBAdapter` - MariaDB
+/// - `SQLiteAdapter` - SQLite
 ///
 /// ### NoSQL Databases
-/// - `MongoDBAdapter` - Requires: `mongo_dart`
-/// - `CouchDBAdapter` - Requires: `dio` (included)
-/// - `RedisAdapter` - Requires: `redis`
-/// - `DynamoDBAdapter` - Requires: `aws_dynamodb_api`
-/// - `CassandraAdapter` - Requires: `dart_cassandra_cql`
+/// - `MongoDBAdapter` - MongoDB
+/// - `CouchDBAdapter` - CouchDB
+/// - `RedisAdapter` - Redis
+/// - `DynamoDBAdapter` - AWS DynamoDB
+/// - `CassandraAdapter` - Apache Cassandra
 ///
 /// ### API Protocols
-/// - `GraphQLAdapter` - Requires: `graphql`
-/// - `RestBackendAdapter` - Built-in (uses `dio`)
+/// - `GraphQLAdapter` - GraphQL APIs
+/// - `RestBackendAdapter` - REST APIs (built-in)
 ///
 /// ## Installation
 ///
-/// Add SyncLayer and your chosen database package:
+/// 1. Copy the adapter file from GitHub:
+///    https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters
+///
+/// 2. Add to your project: `lib/adapters/postgres_adapter.dart`
+///
+/// 3. Install required package:
 /// ```yaml
 /// dependencies:
 ///   synclayer: ^1.4.0
-///   postgres: ^3.0.0  # Example: for PostgreSQL
+///   postgres: ^3.0.0  # Example for PostgreSQL
 /// ```
 ///
-/// ## Usage Example
-///
+/// 4. Import and use:
 /// ```dart
 /// import 'package:synclayer/synclayer.dart';
-/// import 'package:synclayer/adapters.dart';
-/// import 'package:postgres/postgres.dart';
-///
-/// final conn = await Connection.open(
-///   Endpoint(host: 'localhost', database: 'mydb'),
-/// );
+/// import 'adapters/postgres_adapter.dart';
 ///
 /// await SyncLayer.init(
 ///   SyncConfig(
@@ -64,12 +62,9 @@
 ///
 /// ## Documentation
 ///
-/// See the [Adapter Guide](https://github.com/hostspicaindia/synclayer/blob/main/lib/adapters/ADAPTER_GUIDE.md)
-/// for detailed setup instructions for each database.
+/// Complete setup guide:
+/// https://github.com/hostspicaindia/synclayer/blob/main/DATABASE_SUPPORT.md
 ///
-/// **Note:** Adapter files will show analyzer errors if their required packages
-/// are not installed. This is expected - they are optional dependencies.
+/// Quick start (5 minutes):
+/// https://github.com/hostspicaindia/synclayer/blob/main/QUICK_START.md
 library adapters;
-
-// Export all adapters
-export 'adapters/adapters.dart';

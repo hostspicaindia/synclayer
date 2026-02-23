@@ -57,9 +57,28 @@ test/
 integration_test/
 
 # Adapter implementations (require optional dependencies - available on GitHub)
+# BaaS Platform Adapters
 lib/adapters/firebase_adapter.dart
 lib/adapters/supabase_adapter.dart
 lib/adapters/appwrite_adapter.dart
+
+# SQL Database Adapters
+lib/adapters/postgres_adapter.dart
+lib/adapters/mysql_adapter.dart
+lib/adapters/mariadb_adapter.dart
+lib/adapters/sqlite_adapter.dart
+
+# NoSQL Database Adapters
+lib/adapters/mongodb_adapter.dart
+lib/adapters/couchdb_adapter.dart
+lib/adapters/redis_adapter.dart
+lib/adapters/dynamodb_adapter.dart
+lib/adapters/cassandra_adapter.dart
+
+# API Protocol Adapters
+lib/adapters/graphql_adapter.dart
+
+# Adapter exports (references excluded adapters)
 lib/adapters/adapters.dart
 
 # Example app Firebase config (contains API keys - security)
