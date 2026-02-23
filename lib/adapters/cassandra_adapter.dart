@@ -1,6 +1,7 @@
 // ignore_for_file: depend_on_referenced_packages, uri_does_not_exist, undefined_class, undefined_identifier, undefined_method
 import 'package:dart_cassandra_cql/dart_cassandra_cql.dart';
 import '../network/sync_backend_adapter.dart';
+import '../sync/sync_filter.dart';
 import 'dart:convert';
 
 /// Apache Cassandra adapter for SyncLayer
@@ -77,19 +78,47 @@ class CassandraAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    // Cassandra doesn't have native delta sync support
+    // Fall back to full document update
+    // In production, you might want to read the current document first
+    // and merge the delta, but that requires an additional read
+    final jsonData = jsonEncode(delta);
+
+    await client.execute('''
+      INSERT INTO $collection (record_id, data, updated_at, version)
+      VALUES (?, ?, ?, ?)
+    ''', [recordId, jsonData, timestamp, baseVersion + 1]);
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
+    SyncFilter? filter,
   }) async {
     StreamedQueryResult result;
 
-    if (since != null) {
+    // Use filter's since if provided, otherwise use since parameter
+    final effectiveSince = filter?.since ?? since;
+
+    // Note: Cassandra filtering is limited without proper indexes
+    // For production, create appropriate secondary indexes
+    if (effectiveSince != null) {
       result = await client.execute('''
         SELECT record_id, data, updated_at, version
         FROM $collection
         WHERE updated_at > ?
         ALLOW FILTERING
-      ''', [since]);
+      ''', [effectiveSince]);
     } else {
       result = await client.execute('''
         SELECT record_id, data, updated_at, version
@@ -98,13 +127,38 @@ class CassandraAdapter implements SyncBackendAdapter {
     }
 
     final records = <SyncRecord>[];
+    var count = 0;
+    final skipCount = offset ?? 0;
+    final maxRecords = limit ?? 1000000; // Large default if no limit
+
     await for (final row in result.rows) {
+      // Handle offset
+      if (count < skipCount) {
+        count++;
+        continue;
+      }
+
+      // Handle limit
+      if (records.length >= maxRecords) {
+        break;
+      }
+
+      var recordData =
+          jsonDecode(row['data'] as String) as Map<String, dynamic>;
+
+      // Apply field filtering if specified
+      if (filter != null) {
+        recordData = filter.applyFieldFilter(recordData);
+      }
+
       records.add(SyncRecord(
         recordId: row['record_id'] as String,
-        data: jsonDecode(row['data'] as String) as Map<String, dynamic>,
+        data: recordData,
         updatedAt: row['updated_at'] as DateTime,
         version: row['version'] as int,
       ));
+
+      count++;
     }
 
     return records;

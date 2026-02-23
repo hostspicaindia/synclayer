@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synclayer/network/sync_backend_adapter.dart';
+import 'package:synclayer/sync/sync_filter.dart';
 
 /// Mock adapter for testing adapter behavior
 class MockAdapter implements SyncBackendAdapter {
@@ -32,9 +33,29 @@ class MockAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    // For mock, just treat delta as regular push
+    await push(
+      collection: collection,
+      recordId: recordId,
+      data: delta,
+      timestamp: timestamp,
+    );
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
+    SyncFilter? filter,
   }) async {
     pullCallCount++;
 

@@ -69,20 +69,43 @@ await SyncLayer.collection('todos').save({
 
 ## Supported Backends
 
-### Works With
+### Works With 14+ Databases
 
-- ✅ **REST APIs** (built-in adapter)
-- ✅ **Firebase Firestore** (copy adapter from GitHub)
-- ✅ **Supabase** (copy adapter from GitHub)
-- ✅ **Appwrite** (copy adapter from GitHub)
-- ✅ **Custom backends** (implement `SyncBackendAdapter`)
+**BaaS Platforms (3)**
+- ✅ **Firebase Firestore** - Google's NoSQL cloud database
+- ✅ **Supabase** - Open-source Firebase alternative with PostgreSQL
+- ✅ **Appwrite** - Self-hosted backend-as-a-service
 
-⚠️ **Note:** Platform adapters (Firebase, Supabase, Appwrite) are NOT in the pub.dev package.  
+**SQL Databases (4)**
+- ✅ **PostgreSQL** - Advanced open-source relational database
+- ✅ **MySQL** - Popular open-source relational database
+- ✅ **MariaDB** - MySQL fork with enhanced features
+- ✅ **SQLite** - Embedded relational database
+
+**NoSQL Databases (5)**
+- ✅ **MongoDB** - Document-oriented database
+- ✅ **CouchDB** - Document database with built-in sync
+- ✅ **Redis** - In-memory key-value store
+- ✅ **DynamoDB** - AWS managed NoSQL database
+- ✅ **Cassandra** - Distributed wide-column store
+
+**API Protocols (2)**
+- ✅ **REST APIs** - Generic HTTP/REST backend (built-in)
+- ✅ **GraphQL** - Flexible query language for APIs
+
+**Custom Backends**
+- ✅ Implement `SyncBackendAdapter` for any backend
+
+⚠️ **Note:** Database adapters (Firebase, Supabase, PostgreSQL, MongoDB, etc.) are NOT in the pub.dev package.  
 You must copy them from the [GitHub repository](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters) into your project.
 
 **Why?** To keep the package lightweight and avoid forcing optional dependencies on all users.
 
-📖 **Setup guide:** [Platform Adapters Guide](https://github.com/hostspicaindia/synclayer/blob/main/doc/PLATFORM_ADAPTERS.md)  
+📖 **Setup guides:**
+- [Database Support Guide](https://github.com/hostspicaindia/synclayer/blob/main/DATABASE_SUPPORT.md) - Overview of all 14 databases
+- [Database Comparison](https://github.com/hostspicaindia/synclayer/blob/main/DATABASE_COMPARISON.md) - Choose the right database
+- [Adapter Guide](https://github.com/hostspicaindia/synclayer/blob/main/lib/adapters/ADAPTER_GUIDE.md) - Setup for each database
+- [Platform Adapters Guide](https://github.com/hostspicaindia/synclayer/blob/main/doc/PLATFORM_ADAPTERS.md) - Firebase, Supabase, Appwrite  
 
 ---
 
@@ -92,7 +115,7 @@ You must copy them from the [GitHub repository](https://github.com/hostspicaindi
 
 ```yaml
 dependencies:
-  synclayer: ^1.3.0
+  synclayer: ^1.4.1
 ```
 
 ### 2. Initialize
@@ -117,9 +140,9 @@ void main() async {
 }
 ```
 
-**Option B: Firebase, Supabase, or Appwrite**
+**Option B: Firebase, Supabase, PostgreSQL, MongoDB, or 10+ other databases**
 
-⚠️ **Important:** Platform adapters are NOT included in the pub.dev package. You must copy them from GitHub.
+⚠️ **Important:** Database adapters are NOT included in the pub.dev package. You must copy them from GitHub.
 
 **Quick Install (Windows PowerShell):**
 ```powershell
@@ -128,24 +151,35 @@ New-Item -ItemType Directory -Force -Path lib\adapters
 
 # Download Firebase adapter
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/hostspicaindia/synclayer/main/lib/adapters/firebase_adapter.dart" -OutFile "lib\adapters\firebase_adapter.dart"
+
+# Or PostgreSQL adapter
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/hostspicaindia/synclayer/main/lib/adapters/postgres_adapter.dart" -OutFile "lib\adapters\postgres_adapter.dart"
+
+# Or MongoDB adapter
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/hostspicaindia/synclayer/main/lib/adapters/mongodb_adapter.dart" -OutFile "lib\adapters\mongodb_adapter.dart"
 ```
 
 **Or manually:**
 1. Go to [GitHub adapters folder](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters)
-2. Copy the adapter file (e.g., `firebase_adapter.dart`)
-3. Paste into your project at `lib/adapters/firebase_adapter.dart`
+2. Copy the adapter file you need (e.g., `firebase_adapter.dart`, `postgres_adapter.dart`, `mongodb_adapter.dart`)
+3. Paste into your project at `lib/adapters/[adapter_name].dart`
 
 **Then use it:**
 ```dart
 // 1. Add platform package to pubspec.yaml
 dependencies:
-  synclayer: ^1.1.0
+  synclayer: ^1.4.1
   cloud_firestore: ^5.7.0  # For Firebase
+  # OR postgres: ^3.0.0     # For PostgreSQL
+  # OR mongo_dart: ^0.10.0  # For MongoDB
+  # See DATABASE_SUPPORT.md for all options
 
 // 2. Import the adapter you copied
 import 'adapters/firebase_adapter.dart';
+// OR import 'adapters/postgres_adapter.dart';
+// OR import 'adapters/mongodb_adapter.dart';
 
-// 3. Initialize
+// 3. Initialize with Firebase
 await Firebase.initializeApp();
 await SyncLayer.init(
   SyncConfig(
@@ -155,9 +189,34 @@ await SyncLayer.init(
     collections: ['todos'],
   ),
 );
+
+// OR with PostgreSQL
+final connection = await Connection.open(
+  Endpoint(host: 'localhost', database: 'mydb', username: 'user', password: 'pass'),
+);
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: PostgresAdapter(connection: connection),
+    collections: ['todos'],
+  ),
+);
+
+// OR with MongoDB
+final db = await Db.create('mongodb://localhost:27017/mydb');
+await db.open();
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: MongoDBAdapter(db: db),
+    collections: ['todos'],
+  ),
+);
 ```
 
-📖 **Full setup guide:** [Platform Adapters Guide](https://github.com/hostspicaindia/synclayer/blob/main/doc/PLATFORM_ADAPTERS.md)
+📖 **Full setup guides:**
+- [Database Support Guide](https://github.com/hostspicaindia/synclayer/blob/main/DATABASE_SUPPORT.md) - All 14 databases
+- [Database Comparison](https://github.com/hostspicaindia/synclayer/blob/main/DATABASE_COMPARISON.md) - Choose the right one
+- [Adapter Guide](https://github.com/hostspicaindia/synclayer/blob/main/lib/adapters/ADAPTER_GUIDE.md) - Setup instructions
+- [Platform Adapters Guide](https://github.com/hostspicaindia/synclayer/blob/main/doc/PLATFORM_ADAPTERS.md) - Firebase, Supabase, Appwrite
 
 ### 3. Use it
 

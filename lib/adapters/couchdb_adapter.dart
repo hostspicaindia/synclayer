@@ -1,6 +1,7 @@
 // ignore_for_file: depend_on_referenced_packages
 import 'package:dio/dio.dart';
 import '../network/sync_backend_adapter.dart';
+import '../sync/sync_filter.dart';
 
 /// CouchDB adapter for SyncLayer
 ///
@@ -97,9 +98,30 @@ class CouchDBAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    // CouchDB doesn't have native delta sync
+    // Fall back to full document update
+    await push(
+      collection: collection,
+      recordId: recordId,
+      data: delta,
+      timestamp: timestamp,
+    );
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
+    SyncFilter? filter,
   }) async {
     // Use _all_docs view to get all documents
     final response = await _dio.get('/$collection/_all_docs', queryParameters: {

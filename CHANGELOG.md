@@ -2,6 +2,111 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1] - 2026-02-23
+
+### 📝 Documentation & Bug Fixes
+
+**Fixed:**
+- ✅ **Cassandra Adapter** - Fixed compilation errors
+  - Added missing `pushDelta()` method implementation
+  - Fixed `pull()` method signature to include pagination and filter parameters
+  - Added proper SyncFilter support with field filtering
+- ✅ **Documentation** - Updated all docs to reflect 10 new database adapters
+  - CHANGELOG now includes v1.4.0 entry with all new databases
+  - README updated with complete list of 14 supported databases
+  - Added links to DATABASE_SUPPORT.md, DATABASE_COMPARISON.md, ADAPTER_GUIDE.md
+
+**Improved:**
+- 📖 **README** - Better organization of supported backends section
+- 📖 **Quick Start** - Added examples for PostgreSQL and MongoDB
+- 📖 **Installation** - PowerShell commands for multiple adapters
+
+**No Breaking Changes** - Fully backward compatible with v1.4.0
+
+---
+
+## [1.4.0] - 2026-02-23
+
+### 🎯 Multi-Database Support - 10 New Database Adapters
+
+SyncLayer now supports 14+ database backends! Choose the database that fits your needs - from SQL to NoSQL to cloud services.
+
+**New Database Adapters:**
+
+### SQL Databases (4)
+- ✅ **PostgreSQL** - Advanced open-source relational database
+- ✅ **MySQL** - Popular open-source relational database  
+- ✅ **MariaDB** - MySQL fork with enhanced features
+- ✅ **SQLite** - Embedded relational database
+
+### NoSQL Databases (5)
+- ✅ **MongoDB** - Document-oriented database
+- ✅ **CouchDB** - Document database with built-in sync
+- ✅ **Redis** - In-memory key-value store
+- ✅ **DynamoDB** - AWS managed NoSQL database
+- ✅ **Cassandra** - Distributed wide-column store
+
+### API Protocols (1)
+- ✅ **GraphQL** - Flexible query language for APIs
+
+**Why Multiple Databases?**
+- 🔧 **Flexibility:** Choose the right database for your use case
+- 🚀 **Migration:** Easy to switch databases without changing app code
+- 🌍 **Ecosystem:** Work with your existing infrastructure
+- 💰 **Cost:** Use free/open-source options or managed services
+- 🔒 **Control:** Self-host or use cloud services
+
+**Example Usage:**
+```dart
+// PostgreSQL
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: PostgresAdapter(connection: connection),
+    collections: ['todos', 'users'],
+  ),
+);
+
+// MongoDB
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: MongoDBAdapter(db: db),
+    collections: ['todos', 'users'],
+  ),
+);
+
+// Redis
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: RedisAdapter(connection: connection),
+    collections: ['todos', 'users'],
+  ),
+);
+```
+
+**Documentation:**
+- [Database Support Guide](DATABASE_SUPPORT.md) - Complete overview of all 14 databases
+- [Database Comparison](DATABASE_COMPARISON.md) - Choose the right database
+- [Adapter Guide](lib/adapters/ADAPTER_GUIDE.md) - Setup instructions for each database
+- [Installation Guide](INSTALLATION.md) - Quick start for each database
+- [Quick Start](QUICK_START.md) - 5-minute tutorial
+
+**Adapter Architecture:**
+- All adapters implement the same `SyncBackendAdapter` interface
+- Consistent API across all databases
+- Easy to switch databases by changing one line of code
+- Can create custom adapters for any backend
+
+**Available on GitHub:**
+All 10 new adapters are available in the [GitHub repository](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters). Copy the adapter you need into your project.
+
+**Breaking Changes:**
+- None - All new features are additive and backward compatible
+
+**Migration:**
+No migration needed. Existing code continues to work. New database adapters are opt-in.
+
+---
+
 ## [1.3.2] - 2026-02-19
 
 ### Fixed
