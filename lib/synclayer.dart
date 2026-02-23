@@ -5,7 +5,7 @@
 /// - Automatic sync when online
 /// - Conflict resolution strategies
 /// - Real-time data updates
-/// - Backend adapters for Firebase, Supabase, Appwrite
+/// - Backend adapters for 14+ databases
 ///
 /// ## Quick Start
 ///
@@ -27,6 +27,13 @@
 /// });
 /// ```
 ///
+/// ## Database Adapters
+///
+/// Import adapters separately based on your database:
+/// ```dart
+/// import 'package:synclayer/adapters.dart';
+/// ```
+///
 /// See the [README](https://pub.dev/packages/synclayer) for more examples.
 library synclayer;
 
@@ -34,8 +41,6 @@ export 'core/synclayer_init.dart';
 export 'core/sync_event.dart';
 export 'network/sync_backend_adapter.dart';
 export 'conflict/conflict_resolver.dart';
-// Note: Platform adapters (Firebase, Supabase, Appwrite) are available on GitHub
-// See: https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters
 
 import 'dart:convert';
 import 'package:uuid/uuid.dart';

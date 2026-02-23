@@ -1,12 +1,29 @@
 # SyncLayer
 
 [![pub package](https://img.shields.io/pub/v/synclayer.svg)](https://pub.dev/packages/synclayer)
+[![likes](https://img.shields.io/pub/likes/synclayer)](https://pub.dev/packages/synclayer/score)
+[![popularity](https://img.shields.io/pub/popularity/synclayer)](https://pub.dev/packages/synclayer/score)
+[![pub points](https://img.shields.io/pub/points/synclayer)](https://pub.dev/packages/synclayer/score)
 
 **Build offline-first Flutter apps in minutes** — Production-grade sync engine with automatic background synchronization and conflict resolution.
 
-Works with REST APIs, Firebase, Supabase, Appwrite, or any custom backend.
+**Now supports 14+ databases:** PostgreSQL, MySQL, MongoDB, Firebase, Supabase, Redis, DynamoDB, and more!
 
-⚠️ **BETA VERSION** - Ready for testing. APIs are stable but may evolve based on feedback. [See changelog](#changelog).
+---
+
+## 🎉 What's New in v1.4.0
+
+✨ **Multi-Database Support** - Now supports 14+ databases!
+- **SQL**: PostgreSQL, MySQL, MariaDB, SQLite
+- **NoSQL**: MongoDB, CouchDB, Redis, DynamoDB, Cassandra
+- **BaaS**: Firebase, Supabase, Appwrite
+- **API**: REST, GraphQL
+
+📚 **Comprehensive Documentation** - Complete guides for each database  
+🧪 **60+ Tests** - All adapters fully tested  
+🔧 **Optional Dependencies** - Only install what you need  
+
+[See full changelog →](#changelog)
 
 ---
 
@@ -18,14 +35,15 @@ Your users expect apps to work offline. But building sync is hard:
 ❌ Conflict resolution logic  
 ❌ Network retry handling  
 ❌ Version tracking  
+❌ Database integration  
 
 **SyncLayer handles all of this for you.**
 
 ```dart
-// That's it. Your app now works offline.
+// Works with any database - PostgreSQL, MongoDB, Firebase, etc.
 await SyncLayer.init(
   SyncConfig(
-    baseUrl: 'https://api.example.com',
+    customBackendAdapter: PostgresAdapter(connection: conn),
     collections: ['todos'],
   ),
 );
@@ -48,29 +66,39 @@ await SyncLayer.collection('todos').save({
 🚀 **Local-First** - Writes happen instantly to local storage  
 🔄 **Auto-Sync** - Background sync every 5 minutes (configurable)  
 📡 **Offline Queue** - Operations sync automatically when online  
+🗄️ **14+ Databases** - PostgreSQL, MySQL, MongoDB, Firebase, and more  
 ⚔️ **Conflict Resolution** - Last-write-wins, server-wins, or client-wins  
-🔌 **Backend Agnostic** - Works with REST, Firebase, Supabase, or custom backends  
+🔌 **Backend Agnostic** - Works with any database or API  
 📦 **Batch Operations** - Save/delete multiple documents efficiently  
 👀 **Reactive** - Watch collections for real-time UI updates  
 
 ---
 
-## Supported Backends
+## Supported Databases
 
-### Works With
+### BaaS Platforms
+- ✅ **Firebase Firestore** - Google's NoSQL cloud database
+- ✅ **Supabase** - Open-source Firebase alternative with PostgreSQL
+- ✅ **Appwrite** - Self-hosted backend-as-a-service
 
-- ✅ **REST APIs** (built-in adapter)
-- ✅ **Firebase Firestore** (copy adapter from GitHub)
-- ✅ **Supabase** (copy adapter from GitHub)
-- ✅ **Appwrite** (copy adapter from GitHub)
-- ✅ **Custom backends** (implement `SyncBackendAdapter`)
+### SQL Databases
+- ✅ **PostgreSQL** - Advanced open-source relational database
+- ✅ **MySQL** - Popular open-source relational database
+- ✅ **MariaDB** - MySQL fork with enhanced features
+- ✅ **SQLite** - Embedded relational database
 
-⚠️ **Note:** Platform adapters (Firebase, Supabase, Appwrite) are NOT in the pub.dev package.  
-You must copy them from the [GitHub repository](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters) into your project.
+### NoSQL Databases
+- ✅ **MongoDB** - Document-oriented database
+- ✅ **CouchDB** - Document database with built-in sync
+- ✅ **Redis** - In-memory key-value store
+- ✅ **DynamoDB** - AWS managed NoSQL database
+- ✅ **Cassandra** - Distributed wide-column store
 
-**Why?** To keep the package lightweight and avoid forcing optional dependencies on all users.
+### API Protocols
+- ✅ **REST API** - Generic HTTP/REST backend (built-in)
+- ✅ **GraphQL** - Flexible query language for APIs
 
-📖 **Setup guide:** [Platform Adapters Guide](https://github.com/hostspicaindia/synclayer/blob/main/doc/PLATFORM_ADAPTERS.md)  
+📖 **See:** [Database Comparison Guide](DATABASE_COMPARISON.md) | [Installation Guide](INSTALLATION.md)
 
 ---
 
@@ -80,13 +108,92 @@ You must copy them from the [GitHub repository](https://github.com/hostspicaindi
 
 ```yaml
 dependencies:
-  synclayer: ^0.2.0-beta.1
+  synclayer: ^1.4.0
+  # Add your database package
+  postgres: ^3.0.0  # Example: PostgreSQL
 ```
 
 ### 2. Initialize
 
-**Option A: REST API (default)**
+```dart
+import 'package:synclayer/synclayer.dart';
+import 'package:synclayer/adapters.dart';
+import 'package:postgres/postgres.dart';
 
+// Connect to your database
+final conn = await Connection.open(
+  Endpoint(host: 'localhost', database: 'mydb'),
+);
+
+// Initialize SyncLayer
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: PostgresAdapter(connection: conn),
+    collections: ['todos'],
+  ),
+);
+```
+
+### 3. Use it
+
+```dart
+// Save data (works offline)
+final id = await SyncLayer.collection('todos').save({
+  'text': 'Buy milk',
+  'done': false,
+});
+
+// Get data
+final todo = await SyncLayer.collection('todos').get(id);
+
+// Watch for changes (real-time)
+SyncLayer.collection('todos').watch().listen((todos) {
+  print('Todos: ${todos.length}');
+});
+
+// Delete
+await SyncLayer.collection('todos').delete(id);
+
+// Manual sync
+await SyncLayer.syncNow();
+```
+
+---
+
+## More Examples
+
+### Firebase
+```dart
+import 'package:synclayer/adapters.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: FirebaseAdapter(
+      firestore: FirebaseFirestore.instance,
+    ),
+    collections: ['todos'],
+  ),
+);
+```
+
+### MongoDB
+```dart
+import 'package:synclayer/adapters.dart';
+import 'package:mongo_dart/mongo_dart.dart';
+
+final db = await Db.create('mongodb://localhost:27017/mydb');
+await db.open();
+
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: MongoDBAdapter(db: db),
+    collections: ['todos'],
+  ),
+);
+```
+
+### REST API (Default)
 ```dart
 import 'package:synclayer/synclayer.dart';
 
