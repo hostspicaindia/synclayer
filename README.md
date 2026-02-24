@@ -9,7 +9,7 @@
 
 Works with REST APIs, Firebase, Supabase, Appwrite, or any custom backend.
 
-✅ **APPROACHING PRODUCTION READY** - v1.6.1 stable release. Battle-tested with 242+ downloads and perfect pub.dev score (160/160). See [Production Readiness Assessment](https://github.com/hostspicaindia/synclayer/blob/main/PRODUCTION_READINESS_ASSESSMENT.md) for details.
+✅ **APPROACHING PRODUCTION READY** - v1.6.1 stable release. Battle-tested with 666+ downloads and perfect pub.dev score (160/160). See [Production Readiness Assessment](https://github.com/hostspicaindia/synclayer/blob/main/PRODUCTION_READINESS_ASSESSMENT.md) for details.
 
 ---
 

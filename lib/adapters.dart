@@ -7,6 +7,6 @@
 /// ```dart
 /// import 'package:synclayer/adapters.dart';
 /// ```
-library adapters;
+library synclayer_adapters;
 
 export 'adapters/adapters.dart';

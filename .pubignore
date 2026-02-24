@@ -36,6 +36,11 @@ READY_TO_PUBLISH_ADAPTERS.md
 ADAPTER_PACKAGES_SUMMARY.md
 ADAPTER_PACKAGES_GUIDE.md
 ADAPTER_INTEGRATION_SUMMARY.md
+TEST_FIX_PROGRESS.md
+V1.6.1_RELEASE_SUMMARY.md
+GITHUB_RELEASE_NOTES.md
+RELEASE_CHECKLIST_v1.6.1.md
+DOCUMENTATION_STATUS.md
 
 # Temporary files
 temp_publish_list.txt
@@ -85,3 +90,7 @@ website/
 *.rar
 *.zip
 *.tar.gz
+
+# Test infrastructure files (not needed in package)
+tool/
+isar.dll

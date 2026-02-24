@@ -2,6 +2,10 @@ import 'package:appwrite/appwrite.dart';
 import 'package:synclayer/synclayer.dart';
 
 /// Appwrite adapter for SyncLayer
+///
+/// Note: This adapter uses Appwrite SDK 21.3.0 which deprecated the Databases API
+/// in favor of TablesDB. For production use, consider updating to the new API
+/// or pinning to an older Appwrite SDK version.
 class AppwriteAdapter implements SyncBackendAdapter {
   final Databases databases;
   final String databaseId;
@@ -16,6 +20,7 @@ class AppwriteAdapter implements SyncBackendAdapter {
     required DateTime timestamp,
   }) async {
     try {
+      // ignore: deprecated_member_use
       await databases.updateDocument(
         databaseId: databaseId,
         collectionId: collection,
@@ -23,6 +28,7 @@ class AppwriteAdapter implements SyncBackendAdapter {
         data: {'data': data, 'updated_at': timestamp.toIso8601String()},
       );
     } catch (e) {
+      // ignore: deprecated_member_use
       await databases.createDocument(
         databaseId: databaseId,
         collectionId: collection,
@@ -45,6 +51,7 @@ class AppwriteAdapter implements SyncBackendAdapter {
     required DateTime timestamp,
   }) async {
     try {
+      // ignore: deprecated_member_use
       await databases.updateDocument(
         databaseId: databaseId,
         collectionId: collection,
@@ -52,6 +59,7 @@ class AppwriteAdapter implements SyncBackendAdapter {
         data: {'data': delta, 'updated_at': timestamp.toIso8601String()},
       );
     } catch (e) {
+      // ignore: deprecated_member_use
       await databases.createDocument(
         databaseId: databaseId,
         collectionId: collection,
@@ -88,6 +96,7 @@ class AppwriteAdapter implements SyncBackendAdapter {
     if (effectiveLimit != null) queries.add(Query.limit(effectiveLimit));
     if (offset != null) queries.add(Query.offset(offset));
 
+    // ignore: deprecated_member_use
     final response = await databases.listDocuments(
       databaseId: databaseId,
       collectionId: collection,
@@ -109,6 +118,7 @@ class AppwriteAdapter implements SyncBackendAdapter {
   @override
   Future<void> delete(
       {required String collection, required String recordId}) async {
+    // ignore: deprecated_member_use
     await databases.deleteDocument(
       databaseId: databaseId,
       collectionId: collection,

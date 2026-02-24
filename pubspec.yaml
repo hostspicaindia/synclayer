@@ -1,6 +1,6 @@
 name: synclayer
 description: Local-first sync engine for Flutter with offline support, delta sync, encryption, custom conflict resolvers, and real-time synchronization.
-version: 1.6.1
+version: 1.6.2
 homepage: https://sdk.hostspica.com/flutter/synclayer
 repository: https://github.com/hostspicaindia/synclayer
 issue_tracker: https://github.com/hostspicaindia/synclayer/issues
@@ -18,18 +18,18 @@ dependencies:
   dio: ^5.9.1
   connectivity_plus: ^7.0.0
   path_provider: ^2.1.5
-  uuid: ^4.5.2
-  crypto: ^3.0.3
+  uuid: ^4.5.3
+  crypto: ^3.0.7
   encrypt: ^5.0.3
   # Database adapters (optional - include only what you need)
   cloud_firestore: ^6.1.2
   supabase_flutter: ^2.12.0
-  appwrite: ^21.3.0
-  postgres: ^3.0.0
+  appwrite: ^21.4.0
+  postgres: ^3.5.9
   mysql1: ^0.20.0
-  mongo_dart: ^0.10.0
-  sqflite: ^2.4.1
-  redis: ^3.1.0
+  mongo_dart: ^0.10.8
+  sqflite: ^2.4.2
+  redis: ^4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -37,3 +37,6 @@ dev_dependencies:
   isar_generator: ^3.1.0+1
   build_runner: ^2.4.13
   flutter_lints: ^3.0.2
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
+  connectivity_plus_platform_interface: ^2.0.0

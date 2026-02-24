@@ -2,7 +2,7 @@
 ///
 /// This library exports all available database adapters.
 /// Import only the adapters you need along with their dependencies.
-library adapters;
+library synclayer_adapters_impl;
 
 export 'firebase_adapter.dart';
 export 'supabase_adapter.dart';

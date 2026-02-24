@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synclayer/synclayer.dart';
+import '../test_helpers.dart';
 
 /// Mock backend adapter for testing
 class MockBackendAdapter implements SyncBackendAdapter {
@@ -48,10 +49,14 @@ class MockBackendAdapter implements SyncBackendAdapter {
 /// Comprehensive initialization tests
 /// Tests: 50+ test cases covering all initialization scenarios
 void main() {
+  setupTestEnvironment();
+
   group('SyncLayer Initialization Tests', () {
     tearDown(() async {
       try {
         await SyncLayer.dispose();
+        // Give Isar time to fully close
+        await Future.delayed(Duration(milliseconds: 100));
       } catch (_) {}
     });
 

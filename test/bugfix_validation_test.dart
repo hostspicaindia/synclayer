@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synclayer/synclayer.dart';
+import 'test_helpers.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  setupTestEnvironment();
 
   group('Bug Fix Validation Tests', () {
     late MockBackendAdapter mockBackend;

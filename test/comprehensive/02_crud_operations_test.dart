@@ -1,8 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synclayer/synclayer.dart';
 import 'dart:io';
+import '../test_helpers.dart';
 
 void main() {
+  setupTestEnvironment();
+
   group('CRUD Operations Tests', () {
     late Directory tempDir;
 
