@@ -1,59 +1,11 @@
-// ignore_for_file: depend_on_referenced_packages, uri_does_not_exist, undefined_class, undefined_identifier, undefined_method
 import 'package:mongo_dart/mongo_dart.dart';
-import '../network/sync_backend_adapter.dart';
+import 'package:synclayer/synclayer.dart';
 
 /// MongoDB adapter for SyncLayer
-///
-/// Syncs data with MongoDB collections.
-///
-/// **IMPORTANT:** This adapter requires the `mongo_dart` package.
-/// Add to your pubspec.yaml:
-/// ```yaml
-/// dependencies:
-///   mongo_dart: ^0.10.0
-/// ```
-///
-/// **Collection Schema:**
-/// Documents will automatically have this structure:
-/// ```json
-/// {
-///   "record_id": "uuid",
-///   "data": { ... your data ... },
-///   "updated_at": ISODate("2024-01-01T00:00:00Z"),
-///   "version": 1
-/// }
-/// ```
-///
-/// **Recommended Indexes:**
-/// ```javascript
-/// db.your_collection.createIndex({ "record_id": 1 }, { unique: true })
-/// db.your_collection.createIndex({ "updated_at": 1 })
-/// ```
-///
-/// Example:
-/// ```dart
-/// final db = await Db.create('mongodb://localhost:27017/mydb');
-/// await db.open();
-///
-/// await SyncLayer.init(
-///   SyncConfig(
-///     baseUrl: 'mongodb://localhost', // Not used
-///     customBackendAdapter: MongoDBAdapter(
-///       db: db,
-///     ),
-///     collections: ['todos', 'users'],
-///   ),
-/// );
-/// ```
-///
-/// Note: This file will show analyzer errors if mongo_dart is not installed.
-/// This is expected - the package is optional and only needed if you use this adapter.
 class MongoDBAdapter implements SyncBackendAdapter {
   final Db db;
 
-  MongoDBAdapter({
-    required this.db,
-  });
+  MongoDBAdapter({required this.db});
 
   @override
   Future<void> push({
@@ -63,19 +15,16 @@ class MongoDBAdapter implements SyncBackendAdapter {
     required DateTime timestamp,
   }) async {
     final coll = db.collection(collection);
-
     await coll.replaceOne(
       where.eq('record_id', recordId),
       {
         'record_id': recordId,
         'data': data,
         'updated_at': timestamp,
-        'version': 1, // Will be incremented if exists
+        'version': 1,
       },
       upsert: true,
     );
-
-    // Increment version if document already existed
     await coll.updateOne(
       where.eq('record_id', recordId),
       modify.inc('version', 1),
@@ -83,24 +32,51 @@ class MongoDBAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    final coll = db.collection(collection);
+    final updateFields = <String, dynamic>{};
+    for (final entry in delta.entries) {
+      updateFields['data.${entry.key}'] = entry.value;
+    }
+    updateFields['updated_at'] = timestamp;
+    await coll.updateOne(
+      where.eq('record_id', recordId),
+      modify.set('updated_at', timestamp).inc('version', 1),
+    );
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
+    SyncFilter? filter,
   }) async {
     final coll = db.collection(collection);
-
     SelectorBuilder query = where;
-
-    if (since != null) {
-      query = query.gt('updated_at', since);
+    final effectiveSince = filter?.since ?? since;
+    if (effectiveSince != null) {
+      query = query.gt('updated_at', effectiveSince);
     }
-
-    final docs = await coll.find(query.sortBy('updated_at')).toList();
-
+    var finder = coll.find(query.sortBy('updated_at'));
+    if (limit != null) finder = finder.take(limit);
+    if (offset != null) finder = finder.skip(offset);
+    final docs = await finder.toList();
     return docs.map((doc) {
+      var recordData = doc['data'] as Map<String, dynamic>;
+      if (filter != null) {
+        recordData = filter.applyFieldFilter(recordData);
+      }
       return SyncRecord(
         recordId: doc['record_id'] as String,
-        data: doc['data'] as Map<String, dynamic>,
+        data: recordData,
         updatedAt: doc['updated_at'] as DateTime,
         version: doc['version'] as int? ?? 1,
       );
@@ -112,14 +88,9 @@ class MongoDBAdapter implements SyncBackendAdapter {
     required String collection,
     required String recordId,
   }) async {
-    final coll = db.collection(collection);
-    await coll.deleteOne(where.eq('record_id', recordId));
+    await db.collection(collection).deleteOne(where.eq('record_id', recordId));
   }
 
   @override
-  void updateAuthToken(String token) {
-    // MongoDB connection auth is set at connection time
-    // To update auth, you need to create a new connection with new credentials
-    // This is a no-op for direct database connections
-  }
+  void updateAuthToken(String token) {}
 }

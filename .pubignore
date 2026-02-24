@@ -25,6 +25,17 @@ TRACKING.md
 project.md
 NEXT_STEPS.md
 PUBLISH_SUCCESS.md
+PUBLICATION_VERIFICATION_REPORT.md
+ALL_PACKAGES_PUBLISHED_SUCCESS.md
+PUBLISHING_STATUS.md
+MIGRATION_COMPLETE_v1.5.0.md
+ALL_ADAPTER_PACKAGES_COMPLETE.md
+ADAPTERS_REMOVED_SUMMARY.md
+CREATE_REMAINING_PACKAGES.md
+READY_TO_PUBLISH_ADAPTERS.md
+ADAPTER_PACKAGES_SUMMARY.md
+ADAPTER_PACKAGES_GUIDE.md
+ADAPTER_INTEGRATION_SUMMARY.md
 
 # Temporary files
 temp_publish_list.txt
@@ -56,30 +67,8 @@ flutter_01.log
 test/
 integration_test/
 
-# Adapter implementations (require optional dependencies - available on GitHub)
-# BaaS Platform Adapters
-lib/adapters/firebase_adapter.dart
-lib/adapters/supabase_adapter.dart
-lib/adapters/appwrite_adapter.dart
-
-# SQL Database Adapters
-lib/adapters/postgres_adapter.dart
-lib/adapters/mysql_adapter.dart
-lib/adapters/mariadb_adapter.dart
-lib/adapters/sqlite_adapter.dart
-
-# NoSQL Database Adapters
-lib/adapters/mongodb_adapter.dart
-lib/adapters/couchdb_adapter.dart
-lib/adapters/redis_adapter.dart
-lib/adapters/dynamodb_adapter.dart
-lib/adapters/cassandra_adapter.dart
-
-# API Protocol Adapters
-lib/adapters/graphql_adapter.dart
-
-# Adapter exports (references excluded adapters)
-lib/adapters/adapters.dart
+# Separate adapter packages directory (published independently)
+packages/
 
 # Example app Firebase config (contains API keys - security)
 example/todo/lib/firebase_options.dart

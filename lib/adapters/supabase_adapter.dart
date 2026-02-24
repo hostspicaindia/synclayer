@@ -1,24 +1,14 @@
-// ignore_for_file: depend_on_referenced_packages, uri_does_not_exist, undefined_class, undefined_identifier, undefined_method
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../network/sync_backend_adapter.dart';
-import '../sync/sync_filter.dart';
+import 'package:synclayer/synclayer.dart';
 
 /// Supabase adapter for SyncLayer
 ///
 /// Syncs data with Supabase PostgreSQL tables.
 ///
-/// **IMPORTANT:** This adapter requires the `supabase_flutter` package.
-/// Add to your pubspec.yaml:
-/// ```yaml
-/// dependencies:
-///   supabase_flutter: ^2.9.0
-/// ```
-///
 /// Example:
 /// ```dart
 /// await SyncLayer.init(
 ///   SyncConfig(
-///     baseUrl: 'https://your-project.supabase.co', // Not used
 ///     customBackendAdapter: SupabaseAdapter(
 ///       client: Supabase.instance.client,
 ///     ),
@@ -26,9 +16,6 @@ import '../sync/sync_filter.dart';
 ///   ),
 /// );
 /// ```
-///
-/// Note: This file will show analyzer errors if supabase_flutter is not installed.
-/// This is expected - the package is optional and only needed if you use this adapter.
 class SupabaseAdapter implements SyncBackendAdapter {
   final SupabaseClient client;
 

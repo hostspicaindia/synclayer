@@ -96,19 +96,7 @@ await SyncLayer.collection('todos').save({
 **Custom Backends**
 - ✅ Implement `SyncBackendAdapter` for any backend
 
-✅ **NEW in v1.5.0:** Database adapters are now available as separate packages on pub.dev!
-
-**Available Adapter Packages:**
-- [synclayer_firebase](https://pub.dev/packages/synclayer_firebase) - Firebase Firestore
-- [synclayer_supabase](https://pub.dev/packages/synclayer_supabase) - Supabase PostgreSQL
-- [synclayer_postgres](https://pub.dev/packages/synclayer_postgres) - PostgreSQL
-- [synclayer_mongodb](https://pub.dev/packages/synclayer_mongodb) - MongoDB
-- [synclayer_mysql](https://pub.dev/packages/synclayer_mysql) - MySQL
-- [synclayer_sqlite](https://pub.dev/packages/synclayer_sqlite) - SQLite
-- [synclayer_redis](https://pub.dev/packages/synclayer_redis) - Redis
-- [synclayer_appwrite](https://pub.dev/packages/synclayer_appwrite) - Appwrite
-
-**Why separate packages?** To keep the main package lightweight and let you install only what you need.
+**All adapters are included in the main package** - just import what you need!
 
 📖 **Setup guides:**
 - [Database Support Guide](https://github.com/hostspicaindia/synclayer/blob/main/DATABASE_SUPPORT.md) - Overview of all 14 databases
@@ -123,7 +111,13 @@ await SyncLayer.collection('todos').save({
 
 ```yaml
 dependencies:
-  synclayer: ^1.5.0
+  synclayer: ^1.6.0
+  # Add database-specific dependencies only if needed:
+  cloud_firestore: ^6.1.2  # For Firebase
+  supabase_flutter: ^2.12.0  # For Supabase
+  postgres: ^3.0.0  # For PostgreSQL
+  mongo_dart: ^0.10.0  # For MongoDB
+  # etc.
 ```
 
 ### 2. Initialize
@@ -150,54 +144,22 @@ void main() async {
 
 **Option B: Firebase, Supabase, PostgreSQL, MongoDB, or 8+ other databases**
 
-✅ **NEW in v1.5.0:** Install adapters directly from pub.dev!
+All adapters are included in the main package!
 
-**Quick Install:**
-```bash
-# Firebase
-flutter pub add synclayer_firebase
-
-# Supabase
-flutter pub add synclayer_supabase
-
-# PostgreSQL
-flutter pub add synclayer_postgres
-
-# MongoDB
-flutter pub add synclayer_mongodb
-
-# MySQL
-flutter pub add synclayer_mysql
-
-# SQLite
-flutter pub add synclayer_sqlite
-
-# Redis
-flutter pub add synclayer_redis
-
-# Appwrite
-flutter pub add synclayer_appwrite
-```
-
-**Then use it:**
+**Firebase Example:**
 ```dart
-// 1. Add adapter package to pubspec.yaml
-dependencies:
-  synclayer: ^1.5.0
-  synclayer_firebase: ^1.0.0  # For Firebase
-  # OR synclayer_postgres: ^1.0.0  # For PostgreSQL
-  # OR synclayer_mongodb: ^1.0.0   # For MongoDB
-  # See pub.dev for all adapters
+import 'package:synclayer/synclayer.dart';
+import 'package:synclayer/adapters.dart';  // Import adapters
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-// 2. Import the adapter package
-import 'package:synclayer_firebase/synclayer_firebase.dart';
-// OR import 'package:synclayer_postgres/synclayer_postgres.dart';
-// OR import 'package:synclayer_mongodb/synclayer_mongodb.dart';
-
-// 3. Initialize with Firebase
-await Firebase.initializeApp();
-await SyncLayer.init(
-  SyncConfig(
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await Firebase.initializeApp();
+  
+  await SyncLayer.init(
+    SyncConfig(
     customBackendAdapter: FirebaseAdapter(
       firestore: FirebaseFirestore.instance,
     ),

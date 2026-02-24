@@ -2,6 +2,64 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-02-24
+
+### 🔄 Reverted to All-in-One Package
+
+After feedback and consideration, we've reverted back to including all adapters in the main package for better scalability and maintainability.
+
+**What Changed:**
+- ✅ All 8 database adapters are now included in the main `synclayer` package
+- ✅ No need to install separate adapter packages
+- ✅ Simpler dependency management
+- ✅ Single version to track
+- ✅ Easier to maintain and scale
+
+**Available Adapters (Built-in):**
+- Firebase Firestore
+- Supabase PostgreSQL
+- Appwrite
+- PostgreSQL
+- MySQL
+- MongoDB
+- SQLite
+- Redis
+
+**Migration from v1.5.0:**
+
+Before (v1.5.0 - separate packages):
+```yaml
+dependencies:
+  synclayer: ^1.5.0
+  synclayer_firebase: ^1.0.0
+```
+
+After (v1.6.0 - all-in-one):
+```yaml
+dependencies:
+  synclayer: ^1.6.0
+  cloud_firestore: ^6.1.2  # Only if using Firebase
+```
+
+**Usage:**
+```dart
+import 'package:synclayer/synclayer.dart';
+import 'package:synclayer/adapters.dart';  // Import adapters
+
+await SyncLayer.init(
+  SyncConfig(
+    customBackendAdapter: FirebaseAdapter(
+      firestore: FirebaseFirestore.instance,
+    ),
+    collections: ['todos'],
+  ),
+);
+```
+
+**Note:** The separate adapter packages (synclayer_firebase, synclayer_supabase, etc.) published in v1.5.0 are now deprecated. Please use the main package instead.
+
+---
+
 ## [1.5.0] - 2026-02-23
 
 ### 🎉 Adapter Packages on pub.dev

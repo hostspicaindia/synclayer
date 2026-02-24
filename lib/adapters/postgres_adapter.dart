@@ -1,61 +1,11 @@
-// ignore_for_file: depend_on_referenced_packages, uri_does_not_exist, undefined_class, undefined_identifier, undefined_method
 import 'package:postgres/postgres.dart';
-import '../network/sync_backend_adapter.dart';
+import 'package:synclayer/synclayer.dart';
 
 /// PostgreSQL adapter for SyncLayer
-///
-/// Syncs data directly with PostgreSQL database tables.
-///
-/// **IMPORTANT:** This adapter requires the `postgres` package.
-/// Add to your pubspec.yaml:
-/// ```yaml
-/// dependencies:
-///   postgres: ^3.0.0
-/// ```
-///
-/// **Database Schema:**
-/// Each collection should have a table with these columns:
-/// ```sql
-/// CREATE TABLE your_collection (
-///   record_id VARCHAR(255) PRIMARY KEY,
-///   data JSONB NOT NULL,
-///   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-///   version INTEGER NOT NULL DEFAULT 1
-/// );
-///
-/// CREATE INDEX idx_updated_at ON your_collection(updated_at);
-/// ```
-///
-/// Example:
-/// ```dart
-/// final connection = await Connection.open(
-///   Endpoint(
-///     host: 'localhost',
-///     database: 'mydb',
-///     username: 'user',
-///     password: 'password',
-///   ),
-/// );
-///
-/// await SyncLayer.init(
-///   SyncConfig(
-///     baseUrl: 'postgres://localhost', // Not used
-///     customBackendAdapter: PostgresAdapter(
-///       connection: connection,
-///     ),
-///     collections: ['todos', 'users'],
-///   ),
-/// );
-/// ```
-///
-/// Note: This file will show analyzer errors if postgres is not installed.
-/// This is expected - the package is optional and only needed if you use this adapter.
 class PostgresAdapter implements SyncBackendAdapter {
   final Connection connection;
 
-  PostgresAdapter({
-    required this.connection,
-  });
+  PostgresAdapter({required this.connection});
 
   @override
   Future<void> push({
@@ -83,22 +33,56 @@ class PostgresAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    // PostgreSQL supports JSON merge - update only changed fields
+    await connection.execute(
+      Sql.named('''
+        UPDATE $collection
+        SET data = data || @delta::jsonb,
+            updated_at = @timestamp,
+            version = version + 1
+        WHERE record_id = @recordId
+      '''),
+      parameters: {
+        'recordId': recordId,
+        'delta': delta,
+        'timestamp': timestamp,
+      },
+    );
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
+    SyncFilter? filter,
   }) async {
     final Result result;
+    final effectiveSince = filter?.since ?? since;
+    final effectiveLimit = filter?.limit ?? limit;
 
-    if (since != null) {
+    if (effectiveSince != null) {
       result = await connection.execute(
         Sql.named('''
           SELECT record_id, data, updated_at, version
           FROM $collection
           WHERE updated_at > @since
           ORDER BY updated_at ASC
+          ${effectiveLimit != null ? 'LIMIT @limit' : ''}
+          ${offset != null ? 'OFFSET @offset' : ''}
         '''),
         parameters: {
-          'since': since,
+          'since': effectiveSince,
+          if (effectiveLimit != null) 'limit': effectiveLimit,
+          if (offset != null) 'offset': offset,
         },
       );
     } else {
@@ -107,14 +91,24 @@ class PostgresAdapter implements SyncBackendAdapter {
           SELECT record_id, data, updated_at, version
           FROM $collection
           ORDER BY updated_at ASC
+          ${effectiveLimit != null ? 'LIMIT @limit' : ''}
+          ${offset != null ? 'OFFSET @offset' : ''}
         '''),
+        parameters: {
+          if (effectiveLimit != null) 'limit': effectiveLimit,
+          if (offset != null) 'offset': offset,
+        },
       );
     }
 
     return result.map((row) {
+      var recordData = row[1] as Map<String, dynamic>;
+      if (filter != null) {
+        recordData = filter.applyFieldFilter(recordData);
+      }
       return SyncRecord(
         recordId: row[0] as String,
-        data: row[1] as Map<String, dynamic>,
+        data: recordData,
         updatedAt: row[2] as DateTime,
         version: row[3] as int,
       );
@@ -127,19 +121,13 @@ class PostgresAdapter implements SyncBackendAdapter {
     required String recordId,
   }) async {
     await connection.execute(
-      Sql.named('''
-        DELETE FROM $collection WHERE record_id = @recordId
-      '''),
-      parameters: {
-        'recordId': recordId,
-      },
+      Sql.named('DELETE FROM $collection WHERE record_id = @recordId'),
+      parameters: {'recordId': recordId},
     );
   }
 
   @override
   void updateAuthToken(String token) {
     // PostgreSQL connection auth is set at connection time
-    // To update auth, you need to create a new connection
-    // This is a no-op for direct database connections
   }
 }

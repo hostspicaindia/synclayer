@@ -1,61 +1,12 @@
-// ignore_for_file: depend_on_referenced_packages, uri_does_not_exist, undefined_class, undefined_identifier, undefined_method
 import 'package:mysql1/mysql1.dart';
-import '../network/sync_backend_adapter.dart';
+import 'package:synclayer/synclayer.dart';
+import 'dart:convert';
 
 /// MySQL adapter for SyncLayer
-///
-/// Syncs data directly with MySQL database tables.
-///
-/// **IMPORTANT:** This adapter requires the `mysql1` package.
-/// Add to your pubspec.yaml:
-/// ```yaml
-/// dependencies:
-///   mysql1: ^0.20.0
-/// ```
-///
-/// **Database Schema:**
-/// Each collection should have a table with these columns:
-/// ```sql
-/// CREATE TABLE your_collection (
-///   record_id VARCHAR(255) PRIMARY KEY,
-///   data JSON NOT NULL,
-///   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-///   version INT NOT NULL DEFAULT 1,
-///   INDEX idx_updated_at (updated_at)
-/// ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-/// ```
-///
-/// Example:
-/// ```dart
-/// final settings = ConnectionSettings(
-///   host: 'localhost',
-///   port: 3306,
-///   user: 'root',
-///   password: 'password',
-///   db: 'mydb',
-/// );
-///
-/// final conn = await MySqlConnection.connect(settings);
-///
-/// await SyncLayer.init(
-///   SyncConfig(
-///     baseUrl: 'mysql://localhost', // Not used
-///     customBackendAdapter: MySQLAdapter(
-///       connection: conn,
-///     ),
-///     collections: ['todos', 'users'],
-///   ),
-/// );
-/// ```
-///
-/// Note: This file will show analyzer errors if mysql1 is not installed.
-/// This is expected - the package is optional and only needed if you use this adapter.
 class MySQLAdapter implements SyncBackendAdapter {
   final MySqlConnection connection;
 
-  MySQLAdapter({
-    required this.connection,
-  });
+  MySQLAdapter({required this.connection});
 
   @override
   Future<void> push({
@@ -64,9 +15,7 @@ class MySQLAdapter implements SyncBackendAdapter {
     required Map<String, dynamic> data,
     required DateTime timestamp,
   }) async {
-    // Convert data to JSON string for MySQL
-    final jsonData = _encodeJson(data);
-
+    final jsonData = jsonEncode(data);
     await connection.query('''
       INSERT INTO $collection (record_id, data, updated_at, version)
       VALUES (?, ?, ?, 1)
@@ -78,31 +27,67 @@ class MySQLAdapter implements SyncBackendAdapter {
   }
 
   @override
+  Future<void> pushDelta({
+    required String collection,
+    required String recordId,
+    required Map<String, dynamic> delta,
+    required int baseVersion,
+    required DateTime timestamp,
+  }) async {
+    final jsonData = jsonEncode(delta);
+    await connection.query('''
+      UPDATE $collection
+      SET data = JSON_MERGE_PATCH(data, ?),
+          updated_at = ?,
+          version = version + 1
+      WHERE record_id = ?
+    ''', [jsonData, timestamp, recordId]);
+  }
+
+  @override
   Future<List<SyncRecord>> pull({
     required String collection,
     DateTime? since,
+    int? limit,
+    int? offset,
+    SyncFilter? filter,
   }) async {
+    final effectiveSince = filter?.since ?? since;
+    final effectiveLimit = filter?.limit ?? limit;
     Results results;
 
-    if (since != null) {
+    if (effectiveSince != null) {
       results = await connection.query('''
         SELECT record_id, data, updated_at, version
         FROM $collection
         WHERE updated_at > ?
         ORDER BY updated_at ASC
-      ''', [since]);
+        ${effectiveLimit != null ? 'LIMIT ?' : ''}
+        ${offset != null ? 'OFFSET ?' : ''}
+      ''', [
+        effectiveSince,
+        if (effectiveLimit != null) effectiveLimit,
+        if (offset != null) offset
+      ]);
     } else {
       results = await connection.query('''
         SELECT record_id, data, updated_at, version
         FROM $collection
         ORDER BY updated_at ASC
-      ''');
+        ${effectiveLimit != null ? 'LIMIT ?' : ''}
+        ${offset != null ? 'OFFSET ?' : ''}
+      ''', [
+        if (effectiveLimit != null) effectiveLimit,
+        if (offset != null) offset
+      ]);
     }
 
     return results.map((row) {
+      var recordData = jsonDecode(row[1] as String) as Map<String, dynamic>;
+      if (filter != null) recordData = filter.applyFieldFilter(recordData);
       return SyncRecord(
         recordId: row[0] as String,
-        data: _decodeJson(row[1] as String),
+        data: recordData,
         updatedAt: row[2] as DateTime,
         version: row[3] as int,
       );
@@ -110,31 +95,12 @@ class MySQLAdapter implements SyncBackendAdapter {
   }
 
   @override
-  Future<void> delete({
-    required String collection,
-    required String recordId,
-  }) async {
-    await connection.query('''
-      DELETE FROM $collection WHERE record_id = ?
-    ''', [recordId]);
+  Future<void> delete(
+      {required String collection, required String recordId}) async {
+    await connection
+        .query('DELETE FROM $collection WHERE record_id = ?', [recordId]);
   }
 
   @override
-  void updateAuthToken(String token) {
-    // MySQL connection auth is set at connection time
-    // To update auth, you need to create a new connection
-    // This is a no-op for direct database connections
-  }
-
-  /// Encode Map to JSON string
-  String _encodeJson(Map<String, dynamic> data) {
-    // Use dart:convert json.encode
-    return data.toString(); // Simplified - use json.encode in production
-  }
-
-  /// Decode JSON string to Map
-  Map<String, dynamic> _decodeJson(String jsonString) {
-    // Use dart:convert json.decode
-    return {}; // Simplified - use json.decode in production
-  }
+  void updateAuthToken(String token) {}
 }

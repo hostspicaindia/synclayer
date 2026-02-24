@@ -1,24 +1,14 @@
-// ignore_for_file: depend_on_referenced_packages, uri_does_not_exist, undefined_class, undefined_identifier, undefined_method, non_type_as_type_argument, cast_to_non_type
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../network/sync_backend_adapter.dart';
-import '../sync/sync_filter.dart';
+import 'package:synclayer/synclayer.dart';
 
 /// Firebase Firestore adapter for SyncLayer
 ///
 /// Syncs data with Firebase Firestore collections.
 ///
-/// **IMPORTANT:** This adapter requires the `cloud_firestore` package.
-/// Add to your pubspec.yaml:
-/// ```yaml
-/// dependencies:
-///   cloud_firestore: ^5.7.0
-/// ```
-///
 /// Example:
 /// ```dart
 /// await SyncLayer.init(
 ///   SyncConfig(
-///     baseUrl: 'https://firebaseapp.com', // Not used
 ///     customBackendAdapter: FirebaseAdapter(
 ///       firestore: FirebaseFirestore.instance,
 ///     ),
@@ -26,9 +16,6 @@ import '../sync/sync_filter.dart';
 ///   ),
 /// );
 /// ```
-///
-/// Note: This file will show analyzer errors if cloud_firestore is not installed.
-/// This is expected - the package is optional and only needed if you use this adapter.
 class FirebaseAdapter implements SyncBackendAdapter {
   final FirebaseFirestore firestore;
 
