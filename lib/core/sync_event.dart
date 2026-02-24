@@ -73,6 +73,39 @@ enum SyncEventType {
   /// The event metadata will include an 'isOnline' boolean indicating
   /// the current connectivity status.
   connectivityChanged,
+
+  /// Emitted when real-time sync connects to WebSocket server.
+  ///
+  /// The event metadata will include the list of subscribed collections.
+  realtimeConnected,
+
+  /// Emitted when real-time sync disconnects from WebSocket server.
+  ///
+  /// The event metadata will include the disconnection reason.
+  realtimeDisconnected,
+
+  /// Emitted when a real-time insert is received from the server.
+  ///
+  /// The event will include the collection name, record ID, and data.
+  realtimeInsert,
+
+  /// Emitted when a real-time update is received from the server.
+  ///
+  /// The event will include the collection name, record ID, and updated data.
+  realtimeUpdate,
+
+  /// Emitted when a real-time delete is received from the server.
+  ///
+  /// The event will include the collection name and record ID.
+  realtimeDelete,
+
+  /// Emitted when a full real-time sync is received from the server.
+  ///
+  /// The event metadata will include the number of records synced.
+  realtimeSync,
+
+  /// Generic error event for real-time sync issues.
+  error,
 }
 
 /// Event emitted during sync operations.

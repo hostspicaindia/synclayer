@@ -43,6 +43,8 @@ export 'sync/sync_filter.dart';
 export 'sync/delta_sync.dart';
 export 'security/encryption_config.dart';
 export 'security/encryption_service.dart';
+export 'realtime/websocket_service.dart';
+export 'realtime/realtime_sync_manager.dart';
 // Note: Platform adapters (Firebase, Supabase, Appwrite) are available on GitHub
 // See: https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters
 
@@ -52,6 +54,7 @@ import 'core/synclayer_init.dart';
 import 'utils/logger.dart';
 import 'utils/metrics.dart';
 import 'query/query_builder.dart';
+import 'realtime/websocket_service.dart';
 
 /// Main entry point for SyncLayer SDK.
 ///
@@ -337,6 +340,16 @@ class CollectionReference {
       );
     }
 
+    // Send real-time update if enabled
+    if (core.realtimeSyncManager?.isActive ?? false) {
+      core.realtimeSyncManager!.sendChange(
+        type: isUpdate ? MessageType.update : MessageType.insert,
+        collection: _name,
+        recordId: recordId,
+        data: data,
+      );
+    }
+
     return recordId;
   }
 
@@ -421,6 +434,15 @@ class CollectionReference {
       collectionName: _name,
       recordId: id,
     );
+
+    // Send real-time delete if enabled
+    if (core.realtimeSyncManager?.isActive ?? false) {
+      core.realtimeSyncManager!.sendChange(
+        type: MessageType.delete,
+        collection: _name,
+        recordId: id,
+      );
+    }
   }
 
   /// Updates specific fields of a document (delta sync).
@@ -502,6 +524,16 @@ class CollectionReference {
       delta: updates,
       baseVersion: existing.version,
     );
+
+    // Send real-time delta update if enabled
+    if (core.realtimeSyncManager?.isActive ?? false) {
+      core.realtimeSyncManager!.sendChange(
+        type: MessageType.update,
+        collection: _name,
+        recordId: id,
+        data: updates, // Send only the delta
+      );
+    }
   }
 
   /// Returns a stream that emits the collection's documents whenever they change.
