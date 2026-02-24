@@ -9,7 +9,7 @@
 
 Works with REST APIs, Firebase, Supabase, Appwrite, or any custom backend.
 
-✅ **PRODUCTION READY** - v1.3.1 stable release. Battle-tested with 242+ downloads and perfect pub.dev score (160/160).
+✅ **APPROACHING PRODUCTION READY** - v1.6.1 stable release. Battle-tested with 242+ downloads and perfect pub.dev score (160/160). See [Production Readiness Assessment](https://github.com/hostspicaindia/synclayer/blob/main/PRODUCTION_READINESS_ASSESSMENT.md) for details.
 
 ---
 
@@ -111,7 +111,7 @@ await SyncLayer.collection('todos').save({
 
 ```yaml
 dependencies:
-  synclayer: ^1.6.0
+  synclayer: ^1.6.1
   # Add database-specific dependencies only if needed:
   cloud_firestore: ^6.1.2  # For Firebase
   supabase_flutter: ^2.12.0  # For Supabase
@@ -736,9 +736,54 @@ SyncLayer.configureLogger(
 
 ---
 
+## Production Readiness
+
+**Current Status: ⚠️ Approaching Production Ready (85%)**
+
+SyncLayer v1.6.1 is well-architected with strong fundamentals, but has areas needing attention before being fully production-ready for mission-critical applications.
+
+### ✅ Ready For:
+- Personal projects and side projects
+- Prototypes and MVPs
+- Internal tools
+- Low-risk applications
+- Non-critical data
+
+### ⚠️ Use With Caution:
+- Production apps with non-critical data
+- Startups (with proper monitoring and rollback plan)
+
+### ❌ Not Yet Ready For:
+- Mission-critical applications
+- Healthcare apps (HIPAA compliance)
+- Finance apps (PCI DSS compliance)
+- Enterprise applications requiring SLA
+
+### Key Strengths:
+- ✅ Excellent architecture and design (95%)
+- ✅ Comprehensive features (90%)
+- ✅ Great performance (85%)
+- ✅ Perfect pub.dev score (160/160)
+- ✅ Well-documented with examples
+
+### Areas Needing Improvement:
+- ⚠️ Test coverage (60% - target 90%)
+- ⚠️ 44% test failure rate (165/378 tests)
+- ⚠️ Security needs third-party audit
+- ⚠️ Data integrity needs stress testing
+
+**Timeline to Full Production Readiness:** 3.5-5.5 months
+
+📊 **Full Assessment:** [Production Readiness Assessment](https://github.com/hostspicaindia/synclayer/blob/main/PRODUCTION_READINESS_ASSESSMENT.md)
+
+---
+
 ## Known Limitations
 
-This is a beta release. Known issues:
+Known issues being addressed:
+
+- ⚠️ Test suite requires Flutter binding initialization
+- ⚠️ 165 tests need fixes (44% failure rate)
 
 - ⚠️ Pull sync requires explicit `collections` configuration
 - ⚠️ Example backend uses in-memory storage (not production-ready)
