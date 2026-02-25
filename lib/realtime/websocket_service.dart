@@ -203,7 +203,7 @@ class WebSocketService {
   }
 
   /// Handle connection errors
-  void _onError(error) {
+  void _onError(Object error) {
     _logger.error('WebSocket error', error);
     _updateState(WebSocketState.error);
     _scheduleReconnect();
