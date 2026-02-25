@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1] - 2026-02-25
+
+### 🐛 Bug Fixes
+
+**Fixed:**
+- ✅ **Type Annotation** - Added missing type annotation to `_onError` parameter in `websocket_service.dart`
+  - Fixed static analysis warning for better pub.dev score
+  - Changed `void _onError(error)` to `void _onError(Object error)`
+- ✅ **Package Validation** - Removed `website/` directory from git tracking
+  - Eliminated gitignore conflict warning during package validation
+  - Directory already excluded via `.pubignore`
+
+**No Breaking Changes** - Fully backward compatible with v1.7.0
+
+---
+
 ## [1.7.0] - 2026-02-24
 
 ### 🌐 Real-Time Sync (WebSocket)

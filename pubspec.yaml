@@ -1,6 +1,6 @@
 name: synclayer
 description: Local-first sync engine for Flutter with offline support, delta sync, encryption, custom conflict resolvers, and real-time synchronization.
-version: 1.7.0
+version: 1.7.1
 homepage: https://sdk.hostspica.com/flutter/synclayer
 repository: https://github.com/hostspicaindia/synclayer
 issue_tracker: https://github.com/hostspicaindia/synclayer/issues
