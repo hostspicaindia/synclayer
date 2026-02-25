@@ -1,8 +1,0 @@
-# https://www.robotstxt.org/robotstxt.html
-User-agent: *
-Allow: /
-
-# Disallow admin or private paths (if any in future)
-# Disallow: /admin/
-
-Sitemap: https://sdk.hostspica.com/sitemap.xml
