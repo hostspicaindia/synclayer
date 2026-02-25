@@ -1,58 +1,5 @@
 # Exclude development and documentation files from pub.dev package
 
-# Internal development documentation (not needed by users)
-PRODUCTION_VALIDATION.md
-BUG_FIX_PULL_SYNC.md
-SENIOR_REVIEW_RESPONSE_V2.md
-SENIOR_REVIEW_RESPONSE.md
-SENIOR_IMPROVEMENTS_V2.md
-ACTION_PLAN.md
-COMPLETION_REPORT.md
-PHASE2_SUMMARY.md
-PHASE2_COMPLETE.md
-TESTING.md
-ARCHITECTURE_DIAGRAM.md
-PLATFORM_ADAPTERS_SUMMARY.md
-IMPLEMENTATION_COMPLETE.md
-PRODUCTION_READINESS_ASSESSMENT.md
-TEST_RESULTS.md
-TEST_3_LARGE_DATASET.md
-BETA_RELEASE.md
-PROJECT_SUMMARY.md
-PUBLICATION_SUMMARY.md
-WHATS_NEW.md
-TRACKING.md
-project.md
-NEXT_STEPS.md
-PUBLISH_SUCCESS.md
-PUBLICATION_VERIFICATION_REPORT.md
-ALL_PACKAGES_PUBLISHED_SUCCESS.md
-PUBLISHING_STATUS.md
-MIGRATION_COMPLETE_v1.5.0.md
-ALL_ADAPTER_PACKAGES_COMPLETE.md
-ADAPTERS_REMOVED_SUMMARY.md
-CREATE_REMAINING_PACKAGES.md
-READY_TO_PUBLISH_ADAPTERS.md
-ADAPTER_PACKAGES_SUMMARY.md
-ADAPTER_PACKAGES_GUIDE.md
-ADAPTER_INTEGRATION_SUMMARY.md
-TEST_FIX_PROGRESS.md
-V1.6.1_RELEASE_SUMMARY.md
-GITHUB_RELEASE_NOTES.md
-RELEASE_CHECKLIST_v1.6.1.md
-DOCUMENTATION_STATUS.md
-
-# Temporary files
-temp_publish_list.txt
-*.tmp
-
-# Internal guides (redundant with doc/ folder)
-ADAPTER_INSTALLATION_GUIDE.md
-FOR_FRONTEND_DEVELOPER.md
-IMPROVEMENTS.md
-QUICKSTART.md
-API.md
-
 # Build artifacts
 .dart_tool/
 .flutter-plugins
@@ -71,9 +18,6 @@ flutter_01.log
 # Test files (not needed in package)
 test/
 integration_test/
-
-# Separate adapter packages directory (published independently)
-packages/
 
 # Example app Firebase config (contains API keys - security)
 example/todo/lib/firebase_options.dart
