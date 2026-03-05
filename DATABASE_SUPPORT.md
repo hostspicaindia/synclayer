@@ -1,6 +1,6 @@
 # SyncLayer Database Support
 
-SyncLayer now supports 14+ database backends through its flexible adapter architecture.
+SyncLayer now supports 8+ database backends through its flexible adapter architecture.
 
 ## Supported Databases
 
@@ -9,22 +9,17 @@ SyncLayer now supports 14+ database backends through its flexible adapter archit
 - **Supabase** - Open-source Firebase alternative with PostgreSQL
 - **Appwrite** - Self-hosted backend-as-a-service
 
-### ✅ SQL Databases (4)
+### ✅ SQL Databases (3)
 - **PostgreSQL** - Advanced open-source relational database
 - **MySQL** - Popular open-source relational database
-- **MariaDB** - MySQL fork with enhanced features
 - **SQLite** - Embedded relational database
 
-### ✅ NoSQL Databases (5)
+### ✅ NoSQL Databases (2)
 - **MongoDB** - Document-oriented database
-- **CouchDB** - Document database with built-in sync
 - **Redis** - In-memory key-value store
-- **DynamoDB** - AWS managed NoSQL database
-- **Cassandra** - Distributed wide-column store
 
-### ✅ API Protocols (2)
+### ✅ API Protocols (1)
 - **REST API** - Generic HTTP/REST backend (built-in)
-- **GraphQL** - Flexible query language for APIs
 
 ## Quick Comparison
 
@@ -36,9 +31,7 @@ SyncLayer now supports 14+ database backends through its flexible adapter archit
 | MySQL | SQL | Traditional web apps | Medium |
 | MongoDB | NoSQL | Flexible schema, JSON | Easy |
 | Redis | NoSQL | Caching, fast access | Easy |
-| DynamoDB | NoSQL | AWS serverless | Medium |
 | SQLite | SQL | Local/offline | Easy |
-| GraphQL | API | Custom backends | Medium |
 | REST | API | Any HTTP API | Easy |
 
 ## Installation
@@ -46,7 +39,7 @@ SyncLayer now supports 14+ database backends through its flexible adapter archit
 ### 1. Add SyncLayer
 ```yaml
 dependencies:
-  synclayer: ^0.1.0-alpha.6
+  synclayer: ^1.7.3
 ```
 
 ### 2. Add Your Database Package
@@ -54,24 +47,21 @@ Choose ONE database package based on your needs:
 
 ```yaml
 # BaaS Platforms
-cloud_firestore: ^5.7.0           # Firebase
-supabase_flutter: ^2.9.0          # Supabase
-appwrite: ^14.0.0                 # Appwrite
+cloud_firestore: ^6.1.2           # Firebase
+supabase_flutter: ^2.12.0         # Supabase
+appwrite: ^21.4.0                 # Appwrite
 
 # SQL Databases
-postgres: ^3.0.0                  # PostgreSQL
-mysql1: ^0.20.0                   # MySQL/MariaDB
-sqflite: ^2.3.0                   # SQLite
+postgres: ^3.5.9                  # PostgreSQL
+mysql1: ^0.20.0                   # MySQL
+sqflite: ^2.4.2                   # SQLite
 
 # NoSQL Databases
-mongo_dart: ^0.10.0               # MongoDB
-redis: ^3.1.0                     # Redis
-aws_dynamodb_api: ^2.0.0          # DynamoDB
-dart_cassandra_cql: ^0.5.0        # Cassandra
+mongo_dart: ^0.10.8               # MongoDB
+redis: ^4.0.0                     # Redis
 
 # API Protocols
-dio: ^5.4.0                       # CouchDB/REST
-graphql: ^5.1.0                   # GraphQL
+dio: ^5.9.1                       # REST (included by default)
 ```
 
 ## Usage Examples
@@ -250,20 +240,14 @@ class MyDatabaseAdapter implements SyncBackendAdapter {
 - MySQL (traditional, widely supported)
 - MongoDB (flexible schema)
 
-### For Serverless
-- DynamoDB (AWS native)
-- Firebase (Google Cloud)
-- Supabase (managed PostgreSQL)
-
 ### For High Performance
 - Redis (in-memory, fastest)
-- Cassandra (distributed, scalable)
-- DynamoDB (low latency)
+- MongoDB (distributed, scalable)
 
 ### For Self-Hosted
 - PostgreSQL (feature-rich)
 - MongoDB (flexible)
-- CouchDB (built-in replication)
+- MySQL (traditional)
 
 ## Migration Between Databases
 

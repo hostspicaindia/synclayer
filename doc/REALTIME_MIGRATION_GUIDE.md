@@ -36,7 +36,7 @@ This guide helps you migrate from polling-based sync to real-time WebSocket sync
 ```yaml
 # pubspec.yaml
 dependencies:
-  synclayer: ^1.7.0  # Update to 1.7.0 or higher
+  synclayer: ^1.7.3  # Update to 1.7.0 or higher
 ```
 
 ```bash

@@ -38,3 +38,18 @@ website/
 # Test infrastructure files (not needed in package)
 tool/
 isar.dll
+
+# Internal documentation (not needed in package)
+*_COMPLETE.md
+*_SCORE.md
+*_SUMMARY.md
+TEST_*.md
+SYNCLAYER_API_REFERENCE.dart
+
+# Release management files (not needed in package)
+RELEASE_CHECKLIST_*.md
+RELEASE_READY_*.md
+PUBLISHING_GUIDE.md
+release.ps1
+test_runner.ps1
+test_runner.sh

@@ -8,20 +8,37 @@ One-page reference for common tasks.
 
 ```yaml
 dependencies:
-  synclayer: ^0.1.0-alpha.6
+  synclayer: ^1.7.3
 ```
 
-**For platform adapters:** Copy adapter from [GitHub](https://github.com/hostspicaindia/synclayer/tree/main/lib/adapters) and add platform package:
+**For platform adapters:** All adapters are included in the main package:
 
 ```yaml
+# Add only the database package you need:
+
 # Firebase
-cloud_firestore: ^5.7.0
+cloud_firestore: ^6.1.2
 
 # Supabase
-supabase_flutter: ^2.9.0
+supabase_flutter: ^2.12.0
 
 # Appwrite
-appwrite: ^14.0.0
+appwrite: ^21.4.0
+
+# PostgreSQL
+postgres: ^3.5.9
+
+# MySQL
+mysql1: ^0.20.0
+
+# MongoDB
+mongo_dart: ^0.10.8
+
+# SQLite
+sqflite: ^2.4.2
+
+# Redis
+redis: ^4.0.0
 ```
 
 ---
@@ -40,9 +57,8 @@ await SyncLayer.init(
 
 ### Firebase
 ```dart
-// 1. Copy firebase_adapter.dart from GitHub into your project
-// 2. Add cloud_firestore: ^5.7.0 to pubspec.yaml
-import 'adapters/firebase_adapter.dart';
+import 'package:synclayer/synclayer.dart';
+import 'package:synclayer/adapters.dart';
 
 await Firebase.initializeApp();
 await SyncLayer.init(
@@ -57,9 +73,8 @@ await SyncLayer.init(
 
 ### Supabase
 ```dart
-// 1. Copy supabase_adapter.dart from GitHub into your project
-// 2. Add supabase_flutter: ^2.9.0 to pubspec.yaml
-import 'adapters/supabase_adapter.dart';
+import 'package:synclayer/synclayer.dart';
+import 'package:synclayer/adapters.dart';
 
 await Supabase.initialize(url: '...', anonKey: '...');
 await SyncLayer.init(
@@ -74,9 +89,8 @@ await SyncLayer.init(
 
 ### Appwrite
 ```dart
-// 1. Copy appwrite_adapter.dart from GitHub into your project
-// 2. Add appwrite: ^14.0.0 to pubspec.yaml
-import 'adapters/appwrite_adapter.dart';
+import 'package:synclayer/synclayer.dart';
+import 'package:synclayer/adapters.dart';
 
 final client = Client()..setEndpoint('...')..setProject('...');
 await SyncLayer.init(

@@ -14,7 +14,7 @@ Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  synclayer: ^1.1.0
+  synclayer: ^1.7.3
 ```
 
 Run:
